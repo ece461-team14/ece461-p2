@@ -1,0 +1,1 @@
+{"URL":"https://github.com/technoweenie/large-repo-test","NetScore":0.27,"RampUp":0,"Correctness":1,"BusFactor":0.1,"ResponsiveMaintainer":0,"License":0,"NetScore_Latency":0,"RampUp_Latency":0,"Correctness_Latency":0,"BusFactor_Latency":0,"ResponsiveMaintainer_Latency":0,"License_Latency":0}

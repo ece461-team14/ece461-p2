@@ -1,0 +1,1 @@
+{"URL":"fakeurl.com","NetScore":-1}

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# define log file as LOG_FILE or log.txt if undefined
+LOG_FILE=${LOG_FILE:-log.txt}
+
+# ./run install
+if [ "$1" == "install" ]; then
+  echo "Installing Node program and dependencies"
+  npm install
+
+# ./run test
+elif [ "$1" == "test" ]; then
+  output=$(npm run coverage)
+
+  # Extract the number of specs and failures
+  specs=$(echo "$output" | grep -o '[0-9]\+ spec' | grep -o '^[0-9]\+')
+  failures=$(echo "$output" | grep -o '[0-9]\+ failures' | grep -o '^[0-9]\+')
+
+
+  # Extract overall line coverage percentage
+  line_coverage=$(echo "$output" | awk '/All files/{print $10}' | xargs)
+
+  # round line coverage to nearest integer
+  line_coverage=$(echo "($line_coverage + 0.5)/1" | bc)
+
+  # Print test outcomes
+  if [ -z "$specs" ]; then specs=0; fi
+  if [ -z "$failures" ]; then failures=0; fi
+  passed=$((specs - failures))
+  echo "$passed/$specs test cases passed. $line_coverage% line coverage achieved."
+  exit 0 
+
+# ./run some text file
+elif [ -f "$1" ]; then
+  npm start "$1" --silent 
+  exit 0
+
+# catch-all for errors
+else 
+  echo "Error: Invalid argument"
+  echo "Usage: ./run [install|test|URL_FILE]"
+  exit 1
+fi

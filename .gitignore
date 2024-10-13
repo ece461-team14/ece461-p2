@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+log.txt
+
+# Dependency directories
+jspm_packages/
+bower_components/
+
+# Testing
+coverage/
+.nyc_output
+instrumented/
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
+
+# .env file
+.env

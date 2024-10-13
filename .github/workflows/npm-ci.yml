@@ -1,0 +1,25 @@
+name: Run testing pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20'  # specify the Node.js version you need
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run testing script
+      run: ./run test

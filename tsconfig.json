@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "target": "es6",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "dist",
+    "allowJs": true
+  },
+  "include": ["src/**/*.ts", "src/tests/**/*.ts"],
+  "lib": ["es2015"]
+}
+

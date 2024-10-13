@@ -1,0 +1,53 @@
+{
+  "name": "ece461_project",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "## Authors:",
+  "main": "dist/app.js",
+  "scripts": {
+    "start": "tsc && node dist/app.js",
+    "lint": "eslint . --config ./eslint.config.mjs",
+    "clean": "rm -rf dist",
+    "build": "echo \"Add build commands here\" && exit 1",
+    "test": "tsc && nyc instrument ./dist ./instrumented && jasmine --verbose",
+    "coverage": "tsc && nyc instrument ./dist ./instrumented && nyc jasmine --verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.10.0",
+    "@types/express": "^4.17.1",
+    "@types/jasmine": "^5.1.4",
+    "@types/node": "^22.5.5",
+    "eslint": "^9.10.0",
+    "globals": "^15.9.0",
+    "jasmine": "^5.3.0",
+    "nyc": "^17.1.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.4.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "express": "^4.17.1",
+    "fs-extra": "^11.2.0"
+  },
+  "nyc": {
+    "include": [
+      "dist/**/*.js"
+    ],
+    "exclude": [
+      "test/**/*.js"
+    ],
+    "extension": [
+      ".js",
+      ".mjs"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "sourceMap": false,
+    "instrument": true
+  }
+}
