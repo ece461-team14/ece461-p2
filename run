@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# get variables from .env file
+if [ -f .env ]; then
+  export $(cat .env | xargs)
+fi
+
 # define log file as LOG_FILE or log.txt if undefined
 LOG_FILE=${LOG_FILE:-log.txt}
 
