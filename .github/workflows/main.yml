@@ -26,8 +26,12 @@ jobs:
         run: |
           npm ci
 
-      - name: deploy
+      - name: Build to .mjs
         run: |
-          npx ncc build index.ts
+          npx ncc build src/index.ts -o dist
+          mv dist/index.js dist/index.mjs
+          
+      - name: Deploy to AWS Lambda
+        run: |
           zip -j deploy.zip ./dist/*
           aws lambda update-function-code --function-name=MyServerlessApp --zip-file=fileb://deploy.zip

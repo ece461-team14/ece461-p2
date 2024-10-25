@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ESNext",
     "esModuleInterop": true,
     "target": "es6",
     "moduleResolution": "node",
@@ -11,7 +11,7 @@
   "include": [
     "src/**/*.ts",
     "src/tests/**/*.ts",
-    "index.ts"
+    "src/index.ts"
   ],
   "lib": [
     "es2015"
