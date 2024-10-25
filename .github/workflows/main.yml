@@ -25,6 +25,6 @@ jobs:
 
     - name: deploy
       run: |
-        npm ncc build src/index.ts
+        npm start
         zip -j deploy.zip ./dist/*
         aws lambda update-function-code --function-name=MyServerlessApp --zip-file=fileb://deploy.zip

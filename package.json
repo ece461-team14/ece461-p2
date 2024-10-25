@@ -8,7 +8,7 @@
     "start": "tsc && node dist/app.js",
     "lint": "eslint . --config ./eslint.config.mjs",
     "clean": "rm -rf dist",
-    "build": "echo \"Add build commands here\" && exit 1",
+    "build": "tsc",
     "test": "tsc && nyc instrument ./dist ./instrumented && jasmine --verbose",
     "coverage": "tsc && nyc instrument ./dist ./instrumented && nyc jasmine --verbose"
   },
