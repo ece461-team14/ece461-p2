@@ -24,6 +24,8 @@ async function processUrl(url: string) {
       BusFactor_Latency: score.BusFactor_Latency,
       ResponsiveMaintainer_Latency: score.ResponsiveMaintainer_Latency,
       License_Latency: score.License_Latency,
+      Dependency_Latency: score.License_Latency,
+      Review_Latency: score.License_Latency,
     };
     return ret;
   } catch (err) {
