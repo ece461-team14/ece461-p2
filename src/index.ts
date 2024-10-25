@@ -1,12 +1,12 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResultV2, Handler } from 'aws-lambda';
-import * as _ from 'lodash';
+import express from "express";
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResultV2> => {
-  const max = 10;
-  const val = _.random(max);
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify('The random value (max ${max}) is: ${val}'),
-  }
-  return response;
-}
+const app = express();
+const port = 3000;
+
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`);
+});

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "## Authors:",
-  "main": "dist/app.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "tsc && node dist/app.js",
+    "start": "tsc && node dist/index.js",
     "lint": "eslint . --config ./eslint.config.mjs",
     "clean": "rm -rf dist",
     "build": "tsc",
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "express": "^4.17.1",
+    "express": "^4.21.1",
     "fs-extra": "^11.2.0"
   },
   "nyc": {
