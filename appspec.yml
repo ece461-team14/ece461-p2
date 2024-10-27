@@ -3,8 +3,9 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu/ece461-p2
+file_exists_behavior: OVERWRITE
 hooks:
-# Install:
+  # Install:
   AfterInstall:
     - location: scripts/after_install.sh
       timeout: 300
