@@ -38,7 +38,7 @@ jobs:
         id: deploy
         run: |
           aws deploy create-deployment \
-          --application-name "TPRDeploymentGroup" \
+          --application-name "TrustworthyPackageRegistry" \
           --deployment-group-name "TPRDeploymentGroup" \
           --deployment-config-name CodeDeployDefault.AllAtOnce \
           --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
