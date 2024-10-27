@@ -6,3 +6,6 @@ cd /home/ubuntu/ece461-p2 >> /home/ubuntu/ece461-p2/logs/deploy.log
 
 echo 'npm install' >> /home/ubuntu/ece461-p2/logs/deploy.log 
 npm install >> /home/ubuntu/ece461-p2/logs/deploy.log
+
+echo 'npm run build' >> /home/ubuntu/ece461-p2/logs/deploy.log
+npm run build >> /home/ubuntu/ece461-p2/logs/deploy.log
