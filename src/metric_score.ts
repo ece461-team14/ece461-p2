@@ -1,4 +1,6 @@
 import { info, debug, silent } from "./logger.js";
+import { GitHubFile } from "./types/GitHubFile.js"
+import { File } from "buffer";
 
 // Function to calculate score and latency for each metric
 const measureLatency = async (fn: () => Promise<any>, label: string) => {
@@ -77,7 +79,7 @@ export async function netScore(url: string): Promise<any> {
   // Get files from repo
   let files: File[];
   try {
-    const files: File[] = await fetchRepoContents(url);
+    files = await fetchRepoContents(url);
   } catch (error) {
     await info("Error fetching repository contents for ramp-up score");
     return 0; // Default to 0 if there's an error
@@ -126,6 +128,8 @@ export async function netScore(url: string): Promise<any> {
     BusFactor: BusFactor.score,
     ResponsiveMaintainer: ResponsiveMaintainer.score,
     License: License.score,
+    Dependency: Dependency.score,
+    Review: Review.score,
     RampUp_Latency: RampUp.latency,
     Correctness_Latency: Correctness.latency,
     BusFactor_Latency: BusFactor.latency,
@@ -297,18 +301,22 @@ export async function licenseScore(data: any): Promise<number> {
  */
 async function dependencyScore(files: File[]): Promise<number> {
   // Find package.json in the files array
-  const packageJsonFile = files.find(
-    (file: File) => file.name.toLowerCase() === "package.json"
-  );
-
-  if (!packageJsonFile) { // NOTE: May need to return 1.0 b/c there are no dependencies technically, spec unclear
-    await info("Error checking package.json: file does not exist");
-    throw new Error("Could not read package.json");
-  }
-
   try {
+    const packageJsonFile: GitHubFile = files.find(file => file.name === 'package.json') as unknown as GitHubFile;
+
+    if (!packageJsonFile) { // NOTE: May need to return 1.0 b/c there are no dependencies technically, spec unclear
+      console.log('NO PACKAGE.JSON');
+      await info("Error checking package.json: file does not exist");
+      throw new Error("Could not read package.json");
+    }
+    const packageJsonDownload = await fetch(packageJsonFile.download_url);
+    if (!packageJsonDownload.ok) {
+      await info("Error checking package.json: error in file download");
+      throw new Error(`Error fetching file: ${packageJsonDownload.statusText}`);
+    }
+    const packageJsonData = await packageJsonDownload.text();
+
     // Read and parse package.json file
-    const packageJsonData = await packageJsonFile.text();
     const packageJson = JSON.parse(packageJsonData);
     const dependencies = packageJson.dependencies || {};
 
@@ -322,6 +330,7 @@ async function dependencyScore(files: File[]): Promise<number> {
 
     return pinnedDependencies.length / Object.keys(dependencies).length;
   } catch (error) {
+    console.error(error);
     await info("Error checking package.json: file read error");
     throw new Error("Could not read package.json");
   }

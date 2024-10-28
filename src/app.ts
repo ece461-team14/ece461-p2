@@ -18,6 +18,8 @@ async function processUrl(url: string) {
       BusFactor: score.BusFactor,
       ResponsiveMaintainer: score.ResponsiveMaintainer,
       License: score.License,
+      Dependency: score.Dependency,
+      Review: score.Review,
       NetScore_Latency: netScoreLatency,
       RampUp_Latency: score.RampUp_Latency,
       Correctness_Latency: score.Correctness_Latency,
