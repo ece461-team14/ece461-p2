@@ -24,4 +24,10 @@ jobs:
     - name: Run testing script
       env:
           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
-      run: ./run test
+      run: 
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "GITHUB_TOKEN is not set"
+          else
+            echo "MY_VARIABLE is set to:" $GITHUB_TOKEN
+          fi
+          npm run test
