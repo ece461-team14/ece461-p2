@@ -18,12 +18,16 @@ async function processUrl(url: string) {
       BusFactor: score.BusFactor,
       ResponsiveMaintainer: score.ResponsiveMaintainer,
       License: score.License,
+      Dependency: score.Dependency,
+      Review: score.Review,
       NetScore_Latency: netScoreLatency,
       RampUp_Latency: score.RampUp_Latency,
       Correctness_Latency: score.Correctness_Latency,
       BusFactor_Latency: score.BusFactor_Latency,
       ResponsiveMaintainer_Latency: score.ResponsiveMaintainer_Latency,
       License_Latency: score.License_Latency,
+      Dependency_Latency: score.License_Latency,
+      Review_Latency: score.License_Latency,
     };
     return ret;
   } catch (err) {
