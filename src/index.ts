@@ -72,3 +72,8 @@ app.get("/tracks", (req, res) => {
     });
   }
 });
+
+// start the Express server
+app.listen(port, () => {
+  console.log(`server started at http://localhost:${port}`);
+});
