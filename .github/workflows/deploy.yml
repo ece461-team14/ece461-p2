@@ -1,3 +1,10 @@
+# deploy.yml
+# Description: Automates deployment to AWS CodeDeploy by assuming an IAM role 
+#              and pushing updates from the GitHub repository.
+# Date: October 29, 2024
+# Dependencies: actions/checkout@v3, aws-actions/configure-aws-credentials@v1.7.0, AWS CLI
+# Contributors: [Add contributors]
+
 # This is a basic workflow to help you get started with Actions
 # name:Connect to an AWS role from a GitHub repository
 
