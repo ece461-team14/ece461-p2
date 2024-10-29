@@ -1,3 +1,9 @@
+// app.ts
+// Description: Processes URLs to compute various metric scores and outputs the results in NDJSON format.
+// Date: October 29, 2024
+// Dependencies: metric_score.js, logger.js, fs/promises, path, Node.js
+// Contributors: (add contributors)
+
 import * as ms from "./metric_score.js";
 import * as fs from "fs/promises";
 import * as path from "path";

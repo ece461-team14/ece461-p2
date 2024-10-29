@@ -1,3 +1,10 @@
+// index.ts
+// Description: Defines the Express server and various API endpoints for handling packages, 
+//              authentication, and other functionalities.
+// Date: October 29, 2024
+// Dependencies: express
+// Contributors: (add contributors)
+
 import express from "express";
 
 const app = express();

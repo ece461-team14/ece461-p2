@@ -1,3 +1,10 @@
+// logger.ts
+// Description: Provides logging utilities with support for multiple log levels (SILENT, INFO, DEBUG) 
+//              and environment-configurable log files.
+// Date: October 29, 2024
+// Dependencies: fs/promises, Node.js environment variables (LOG_FILE, LOG_LEVEL)
+// Contributors: (add contributors)
+
 import * as fs from "fs/promises";
 
 // Define log levels

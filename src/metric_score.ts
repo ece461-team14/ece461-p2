@@ -1,3 +1,10 @@
+// metric_score.ts
+// Description: Contains functions to fetch data from GitHub and NPM, 
+//              calculate various metrics, and return a comprehensive net score.
+// Date: October 29, 2024
+// Dependencies: buffer, logger.js, types/GitHubFile.js, Node.js, GitHub API, NPM API
+// Contributors: (add contributors)
+
 import { info, debug, silent } from "./logger.js";
 import { GitHubFile } from "./types/GitHubFile.js"
 import { File } from "buffer";

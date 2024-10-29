@@ -1,3 +1,9 @@
+# npm-ci.yml
+# Description: Defines a CI pipeline to run tests on every push to any branch.
+# Date: October 29, 2024
+# Dependencies: actions/checkout@v2, actions/setup-node@v2, Node.js v20, npm
+# Contributors: (add contributors)
+
 name: Run testing pipeline
 
 on:

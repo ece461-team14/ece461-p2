@@ -1,3 +1,10 @@
+// test.spec.ts
+// Description: Contains unit and integration tests for validating individual metric 
+//              scores and the overall application logic using sample text files.
+// Date: October 29, 2024
+// Dependencies: fs, path, Node.js, Jest or Jasmine (for testing)
+// Contributors: (add contributors)
+
 const fs = require('fs');
 const path = require('path');
 

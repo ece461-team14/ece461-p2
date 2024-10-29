@@ -1,4 +1,9 @@
 #!/bin/bash
+# install.sh
+# Description: Checks for and installs Node.js and NPM if not already installed.
+# Date: October 29, 2024
+# Dependencies: curl, apt-get, Node.js, NPM
+# Contributors: Ata Ulas Guler
 
 # Function to check if a command exists
 command_exists() {
