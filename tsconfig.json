@@ -9,9 +9,11 @@
     "allowJs": true
   },
   "include": [
-    "src/**/*.ts",
-    "src/tests/**/*.ts",
-    "src/index.ts"
+    "back/src/**/*.ts",
+    "back/src/tests/**/*.ts",
+    "back/src/index.ts",
+    "front/src/**/*.ts",
+    "front/public/**/*.ts"
   ],
   "lib": [
     "es2015"

@@ -4,7 +4,7 @@ import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default {
-  files: ["**/*.{cjs,ts}"],
+  files: ["**/*.{cjs,ts,tsx,js}"], // added support for .tsx and .js for React
   languageOptions: {
     globals: { ...globals.browser, ...globals.node },
     parser: tsParser,
@@ -18,5 +18,5 @@ export default {
     ...pluginJs.configs.recommended.rules,
     ...tsPlugin.configs.recommended.rules,
   },
-  ignores: ["**/dist/"]
+  ignores: ["**/dist/", "client/build/"] // Ignore both server and client build directories
 };
