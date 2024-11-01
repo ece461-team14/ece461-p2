@@ -33,6 +33,12 @@ jobs:
       - name: Build the project
         run: npm run build
 
+      - name: Collect build artifacts
+        run: |
+          mkdir build
+          cp -r dist/* build/ # Change to your build output directory
+          cp -r front/public/* build/ # Change to your build output directory
+
       - name: Archive build files
         uses: actions/upload-artifact@v3
         with:
