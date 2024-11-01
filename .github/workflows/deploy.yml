@@ -25,10 +25,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "14" # Change to your required Node.js version
+          node-version: "18" # Change to your required Node.js version
 
       - name: Install dependencies
-        run: npm install
+        run: sudo npm install
 
       - name: Build the project
         run: npm run build
