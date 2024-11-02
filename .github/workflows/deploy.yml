@@ -59,11 +59,18 @@ jobs:
       - name: Sts GetCallerIdentity
         run: aws sts get-caller-identity
 
-      - name: Deploy to AWS CodeDeploy
-        id: deploy
+      - name: Deploy to EC2 instance
         run: |
-          aws deploy create-deployment \
-          --application-name "TrustworthyPackageRegistry" \
-          --deployment-group-name "TPRDeploymentGroup" \
-          --deployment-config-name CodeDeployDefault.AllAtOnce \
-          --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
+          aws s3 cp build/ s3://my-bucket-name/ --recursive
+          aws s3 ls s3://my-bucket-name/
+          aws s3 cp s3://my-bucket-name/ /var/www/html/ --recursive
+          sudo service apache2 restart
+
+        #     - name: Deploy to AWS CodeDeploy
+        # id: deploy
+        # run: |
+        #   aws deploy create-deployment \
+        #   --application-name "TrustworthyPackageRegistry" \
+        #   --deployment-group-name "TPRDeploymentGroup" \
+        #   --deployment-config-name CodeDeployDefault.AllAtOnce \
+        #   --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
