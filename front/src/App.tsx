@@ -4,21 +4,25 @@ import './App.css';
 
 function App() {
   //--------------------------------
-  // Demo of API call:
-  // State to store API response
-  const [message, setMessage] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false); // State to track loading status
-  const [error, setError] = useState<string | null>(null); // State to store error messages
+  // Demo of API calls:
 
-  // Function to call API on button press
+  // State to store API response for the base message
+  const [message, setMessage] = useState<string>('');
+  // State to store API response for tracks
+  const [tracks, setTracks] = useState<string>(''); // New state for tracks
+
+  // State to track loading status
+  const [loading, setLoading] = useState<boolean>(false);
+  // State to store error messages
+  const [error, setError] = useState<string | null>(null);
+
+  // Function to call the base API endpoint on button press
   const fetchMessage = () => {
     setLoading(true); // Set loading to true when fetching starts
     setError(null); // Reset error state
 
-
-    // if .env NODE_ENV is 'production', use deployment URL. Else use localhost
+    // Determine the API URL based on environment
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/';
-    console.log('API URL:', apiUrl);
 
     fetch(apiUrl)
       .then((response) => {
@@ -32,8 +36,36 @@ function App() {
         console.log('API Response:', data); // Log the API response
       })
       .catch((error) => {
-        setError(`Error fetching message: ${error.message}, APIurl ${apiUrl}`); // Capture and set error
+        setError(`Error fetching message: ${error.message}, API URL: ${apiUrl}`); // Capture and set error
         console.error('Error fetching message:', error);
+      })
+      .finally(() => {
+        setLoading(false); // Set loading to false when fetching is complete
+      });
+  };
+
+  // New function to call the "tracks" API endpoint
+  const fetchTracks = () => {
+    setLoading(true); // Set loading to true when fetching starts
+    setError(null); // Reset error state
+
+    // Determine the API URL based on environment and append 'tracks' endpoint
+    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + 'tracks';
+
+    fetch(apiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`); // Handle non-200 responses
+        }
+        return response.json(); // Assuming the "tracks" endpoint returns JSON
+      })
+      .then((data) => {
+        setTracks(JSON.stringify(data, null, 2)); // Store the tracks data as a formatted JSON string
+        console.log('Tracks API Response:', data); // Log the tracks API response
+      })
+      .catch((error) => {
+        setError(`Error fetching tracks: ${error.message}, API URL: ${apiUrl}`); // Capture and set error
+        console.error('Error fetching tracks:', error);
       })
       .finally(() => {
         setLoading(false); // Set loading to false when fetching is complete
@@ -49,7 +81,20 @@ function App() {
           {loading ? 'Loading...' : 'Fetch Message'}
         </button>
         {message && <p>Back-end Response: {message}</p>}
-        {error && <p style={{ color: 'red' }}>{error}</p>} {/* Display error messages */}
+
+        {/* New button to fetch tracks */}
+        <p>Press the button to get tracks from the back-end:</p>
+        <button onClick={fetchTracks} disabled={loading}>
+          {loading ? 'Loading...' : 'Fetch Tracks'}
+        </button>
+        {tracks && (
+          <pre style={{ textAlign: 'left', backgroundColor: '#f0f0f0', padding: '10px' }}>
+            Tracks Response: {tracks}
+          </pre>
+        )}
+
+        {/* Display error messages */}
+        {error && <p style={{ color: 'red' }}>{error}</p>}
       </header>
     </div>
   );
