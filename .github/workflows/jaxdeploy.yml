@@ -77,7 +77,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            unzip -o ~/prod.zip -d ~/prod
+            unzip prod.zip
             cd ~/prod
             npm install
             pm2 delete backend || true
