@@ -60,15 +60,27 @@ jobs:
           name: prod.zip
           path: prod.zip
 
-      - name: Deploy production artifacts to server
+      - name: Deploy to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: prod.zip
+          target: /home/ubuntu
+
+      - name: Unpack and start application
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            unzip -o prod.zip
-            cd prod
+            unzip -o ~/prod.zip -d ~/prod
+            cd ~/prod
             npm install
-            node dist/back/src/index.js &
-            serve -s build
+            pm2 delete backend || true
+            pm2 delete frontend || true
+            pm2 start dist/back/src/index.js --name backend
+            pm2 start "serve -s build" --name frontend
