@@ -60,15 +60,15 @@ jobs:
           name: prod.zip
           path: prod.zip
 
-      - name: Deploy to server
+      - name: Deploy production artifacts to server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            scp prod.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~
-            unzip prod.zip
+            unzip -o prod.zip
             cd prod
-            pm2 start dist/back/src/index.js --name backend
-            pm2 start "serve -s build" --name frontend
+            npm install
+            node dist/back/src/index.js &
+            serve -s build
