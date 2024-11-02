@@ -32,7 +32,7 @@ function App() {
         console.log('API Response:', data); // Log the API response
       })
       .catch((error) => {
-        setError(`Error fetching message: ${error.message}`); // Capture and set error
+        setError(`Error fetching message: ${error.message}, APIurl ${apiUrl}`); // Capture and set error
         console.error('Error fetching message:', error);
       })
       .finally(() => {
