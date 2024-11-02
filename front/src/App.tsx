@@ -15,8 +15,10 @@ function App() {
     setLoading(true); // Set loading to true when fetching starts
     setError(null); // Reset error state
 
+
     // if .env NODE_ENV is 'production', use deployment URL. Else use localhost
-    const apiUrl = process.env.API_URL || 'http://localhost:8080/';
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/';
+    console.log('API URL:', apiUrl);
 
     fetch(apiUrl)
       .then((response) => {
