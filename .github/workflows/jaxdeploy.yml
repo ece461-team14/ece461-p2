@@ -77,7 +77,6 @@ jobs:
           script: |
             unzip -o prod.zip
             cd ~/prod
-            npm install
             pm2 delete backend || true
             pm2 delete frontend || true
             pm2 start dist/back/src/index.js --name backend
