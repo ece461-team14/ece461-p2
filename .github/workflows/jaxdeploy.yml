@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p prod
           cp -r dist prod/
-          cp -r build prod/
+          cp -r front/build prod/
           cp package.json prod
           cp -r scripts prod
           cp -r node_modules prod
