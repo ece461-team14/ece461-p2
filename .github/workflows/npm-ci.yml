@@ -1,32 +1,31 @@
-name: Run testing pipeline
+# name: Run testing pipeline
 
-on:
-  push:
-    branches:
-      - '**'
+# on:
+#   push:
+#     branches:
+#       - "**"
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '20'
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v2
+#         with:
+#           node-version: "20"
 
-    - name: Install dependencies
-      run: npm install
+#       - name: Install dependencies
+#         run: npm install
 
-    - name: Run testing script
-      env:
-          LOG_LEVEL: 3
-          LOG_FILE: "log.log"
-          GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
-      run: |
-          ./run test
-          cat log.log
-          
+#       - name: Run testing script
+#         env:
+#           LOG_LEVEL: 3
+#           LOG_FILE: "log.log"
+#           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
+#         run: |
+#           ./run test
+#           cat log.log

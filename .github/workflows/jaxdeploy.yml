@@ -1,0 +1,74 @@
+# Very awesome deployment scheme thought up by Jax
+# We'll see how well it works. See below for the general idea.
+
+# 1. Need to run in Github Actions:
+#     1. npm install
+#     2. npm run build
+#     3. Zip all files in step 2 into a `prod` directory
+# 2. Need to Ship:
+#     1. Dist/
+#     2. package.json
+#     3. scripts(?)
+#     4. Build/
+#     5. node_modules/
+# 3. Need to run on server
+#     1. Unpack prod.zip and cd in
+#     2. npm install
+#     3. node dist/back/src/index.js (to start back end)
+#     4. serve -s build (to start front end)
+
+name: JaxDeploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Prepare production artifacts
+        run: |
+          mkdir -p prod
+          cp -r dist prod/
+          cp -r build prod/
+          cp package.json prod
+          cp -r scripts prod
+          cp -r node_modules prod
+          cd prod
+          zip -r prod.zip .
+        shell: bash
+
+      - name: Upload production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: prod.zip
+          path: prod.zip
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            unzip prod.zip
+            cd prod
+            pm2 start dist/back/src/index.js --name backend
+            pm2 start "serve -s build" --name frontend
