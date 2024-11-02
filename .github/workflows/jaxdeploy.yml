@@ -38,7 +38,9 @@ jobs:
         run: npm install
 
       - name: Build application
-        run: npm run build
+        run: |
+          export REACT_APP_API_URL= 'http://34.199.154.104:8080/'
+          npm run build
 
       - name: Prepare production artifacts
         run: |
