@@ -82,3 +82,4 @@ jobs:
             pm2 delete frontend || true
             pm2 start dist/back/src/index.js --name backend
             pm2 start "serve -s build" --name frontend
+            rm -rf prod.zip
