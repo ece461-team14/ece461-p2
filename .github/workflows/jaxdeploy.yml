@@ -51,8 +51,7 @@ jobs:
           cp package.json prod
           cp -r scripts prod
           cp -r node_modules prod
-          cd prod
-          zip -r prod.zip .
+          zip -r prod.zip prod
         shell: bash
 
       - name: Upload production artifacts
