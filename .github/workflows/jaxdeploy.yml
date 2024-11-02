@@ -67,6 +67,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            scp prod.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~
             unzip prod.zip
             cd prod
             pm2 start dist/back/src/index.js --name backend
