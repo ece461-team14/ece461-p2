@@ -16,7 +16,8 @@ function App() {
     setError(null); // Reset error state
 
     // Replace 'http://localhost:8080/' with your back-end URL when deployed
-    const apiUrl = 'http://localhost:8080/'; // Update this as needed
+    const apiUrl = 'http://34.199.154.104:8080/'; // Update this as needed
+    // const apiUrl = 'http://localhost:8080/'; // Update this as needed
 
     fetch(apiUrl)
       .then((response) => {
