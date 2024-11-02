@@ -15,14 +15,9 @@ function App() {
     setLoading(true); // Set loading to true when fetching starts
     setError(null); // Reset error state
 
-    // Replace 'http://localhost:8080/' with your back-end URL when deployed
     // if .env NODE_ENV is 'production', use deployment URL. Else use localhost
-    if (process.env.NODE_ENV === 'production') {
-      var apiUrl = 'http://34.199.154.104:8080/';
-    } else {
-      var apiUrl = 'http://localhost:8080/';
-    }
-    
+    const apiUrl = process.env.API_URL || 'http://localhost:8080/';
+
     fetch(apiUrl)
       .then((response) => {
         if (!response.ok) {
