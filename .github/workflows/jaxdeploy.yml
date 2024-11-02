@@ -47,6 +47,7 @@ jobs:
           cp -r dist prod/
           cp -r front/build prod/
           cp package.json prod
+          cp node_modules prod -r
           zip -r prod.zip prod
         shell: bash
 
@@ -75,7 +76,6 @@ jobs:
           script: |
             unzip -o prod.zip
             cd ~/prod
-            npm install --production
             pm2 delete backend || true
             pm2 delete frontend || true
             pm2 start dist/back/src/index.js --name backend
