@@ -47,7 +47,6 @@ jobs:
           cp -r dist prod/
           cp -r front/build prod/
           cp package.json prod
-          cp -r scripts prod
           cp -r node_modules prod
           zip -r prod.zip prod
         shell: bash
