@@ -8,7 +8,7 @@
     "scripts": {
         "start": "concurrently \"npm run start:back\" \"npm run start:front\"",
         "lint": "eslint . --config ./eslint.config.mjs",
-        "build": "\"npm run build:back\" && \"npm run build:front\"",
+        "build": "npm run build:back && npm run build:front",
         "test": "concurrently \"npm run test:back\" \"npm run test:front\"",
         "eject": "react-scripts eject",
         "coverage": "tsc && nyc instrument ./dist ./instrumented && nyc jest --verbose",
