@@ -1,9 +1,20 @@
 import express from "express";
 import cors from "cors";
+/*
+import AWS from "aws-sdk";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+*/
 
 const app = express();
 app.use(cors());
 const port = 8080;
+
+/*
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+*/
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -67,6 +78,55 @@ app.get("/tracks", (req, res) => {
     });
   }
 });
+
+/*
+const s3 = new AWS.S3({
+  region: "us-east-1",
+  // STILL NEED TO CONFIGURE AWS CREDENTIALS WITHIN THE PROJECT DO NOT APPROVE THIS PUSH YET
+});
+
+const BUCKET_NAME = "tpr-registry-storage";
+
+app.get("/", (req, res) => {
+  res.send(`
+    <html>
+      <body>
+        <h1>Big moves from hello world</h1>
+        <form action="/search" method="get">
+          <label for="query">link or other entered here:</label>
+          <input type="text" id="query" name="query" required>
+          <button type="submit">Search</button>
+        </form>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/search", async (req, res) => {
+  const query = req.query.query as string;
+  // local file
+  const filePath = path.join(__dirname, "query.txt");
+  fs.writeFileSync(filePath, `User input: ${query}`);
+
+  try {
+    // upload the file to S3
+    const fileContent = fs.readFileSync(filePath);
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: "query.txt", // name of the file in S3
+      Body: fileContent,
+      ContentType: "text/plain",
+    };
+
+    await s3.upload(params).promise();
+
+    res.send(`Here's the search: ${query} (AND SAVED TO S3!!!!)`);
+  } catch (error) {
+    console.error("Error uploading to S3:", error);
+    res.send("Failed to upload file to S3.");
+  }
+});
+*/
 
 // start the Express server
 app.listen(port, () => {
