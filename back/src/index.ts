@@ -1,14 +1,14 @@
 import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
-import {S3Client, PutObjectCommand} from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { Multer } from "multer";
 import cors from "cors";
-
-// get environment variables
-const config = {
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-}
+import path from "path";
 
 // Set up the backend server
 const app = express();
@@ -16,22 +16,18 @@ app.use(cors());
 const port = 8080;
 app.use(express.json());
 
-// add config to app
-app.set("config", config);
-
 // Set up the S3 client
-// const s3Client = new S3Client({
-//   region : "us-east-1",
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   },
-// })
+const s3Client = new S3Client({
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
 
 // Root endpoint
 app.get("/", (req, res) => {
-  // send env path to client
-  res.json({ path: process.env.PATH });
+  res.send("Hello World!");
 });
 
 // TODO: implement /packages endpoint
