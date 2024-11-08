@@ -4,71 +4,77 @@ import './App.css';
 
 function App() {
   //--------------------------------
-  // Demo of API calls:
-
-  // State to store API response for the base message
+  // State management for API responses and errors
   const [message, setMessage] = useState<string>('');
-  // State to store API response for tracks
-  const [tracks, setTracks] = useState<string>(''); // New state for tracks
-
-  // State to track loading status
+  const [tracks, setTracks] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  // State to store error messages
   const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
 
-  // Function to call the base API endpoint on button press
+  // Function to call the base API endpoint
   const fetchMessage = () => {
-    setLoading(true); // Set loading to true when fetching starts
-    setError(null); // Reset error state
-
-    // Determine the API URL based on environment
+    setLoading(true);
+    setError(null);
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/';
 
     fetch(apiUrl)
       .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`); // Handle non-200 responses
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         return response.text();
       })
-      .then((data) => {
-        setMessage(data);
-        console.log('API Response:', data); // Log the API response
-      })
-      .catch((error) => {
-        setError(`Error fetching message: ${error.message}, API URL: ${apiUrl}`); // Capture and set error
-        console.error('Error fetching message:', error);
-      })
-      .finally(() => {
-        setLoading(false); // Set loading to false when fetching is complete
-      });
+      .then((data) => setMessage(data))
+      .catch((error) => setError(`Error fetching message: ${error.message}`))
+      .finally(() => setLoading(false));
   };
 
-  // New function to call the "tracks" API endpoint
+  // Function to call the "tracks" API endpoint
   const fetchTracks = () => {
-    setLoading(true); // Set loading to true when fetching starts
-    setError(null); // Reset error state
-
-    // Determine the API URL based on environment and append 'tracks' endpoint
+    setLoading(true);
+    setError(null);
     const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + 'tracks';
 
     fetch(apiUrl)
       .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`); // Handle non-200 responses
-        }
-        return response.json(); // Assuming the "tracks" endpoint returns JSON
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
       })
-      .then((data) => {
-        setTracks(JSON.stringify(data, null, 2)); // Store the tracks data as a formatted JSON string
-        console.log('Tracks API Response:', data); // Log the tracks API response
+      .then((data) => setTracks(JSON.stringify(data, null, 2)))
+      .catch((error) => setError(`Error fetching tracks: ${error.message}`))
+      .finally(() => setLoading(false));
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setFile(e.target.files[0]);
+  };
+
+  // Function to call the "test_upload_file" endpoint
+  const uploadFile = () => {
+    if (!file) {
+      setError('Please select a file first.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + 'test_upload_file';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch(apiUrl, {
+      method: 'POST',
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.text();
       })
-      .catch((error) => {
-        setError(`Error fetching tracks: ${error.message}, API URL: ${apiUrl}`); // Capture and set error
-        console.error('Error fetching tracks:', error);
-      })
+      .then((data) => setMessage(`File uploaded successfully: ${data}`))
+      .catch((error) => setError(`Error uploading file: ${error.message}`))
       .finally(() => {
-        setLoading(false); // Set loading to false when fetching is complete
+        setLoading(false);
+        setFile(null); // Reset file input after upload
       });
   };
 
@@ -82,7 +88,6 @@ function App() {
         </button>
         {message && <p>Back-end Response: {message}</p>}
 
-        {/* New button to fetch tracks */}
         <p>Press the button to get tracks from the back-end:</p>
         <button onClick={fetchTracks} disabled={loading}>
           {loading ? 'Loading...' : 'Fetch Tracks'}
@@ -93,12 +98,17 @@ function App() {
           </pre>
         )}
 
-        {/* Display error messages */}
+        {/* New file upload section */}
+        <p>Choose a file to upload:</p>
+        <input type="file" onChange={handleFileChange} />
+        <button onClick={uploadFile} disabled={loading || !file}>
+          {loading ? 'Uploading...' : 'Upload File'}
+        </button>
+
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </header>
     </div>
   );
-  //--------------------------------
 }
 
 export default App;

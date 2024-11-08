@@ -1,13 +1,69 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
+import multer from "multer";
 import cors from "cors";
+import path from "path";
 
+// Set up the backend server
 const app = express();
 app.use(cors());
 const port = 8080;
+app.use(express.json());
+
+// Set up the S3 client
+const s3Client = new S3Client({
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+// Set up the multer storage
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Hello World.");
+  res.send("Hello World!");
+});
+
+// Test file upload endpoint
+app.post("/test_upload_file", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send("No file uploaded.");
+    }
+
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    // Define the parameters for the S3 upload
+    const uploadParams = {
+      Bucket: bucketName,
+      Key: req.file.originalname, // Using the original file name as the key
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+    };
+
+    // Upload the file to S3
+    const command = new PutObjectCommand(uploadParams);
+    await s3Client.send(command);
+
+    res
+      .status(200)
+      .send(`File uploaded successfully: ${req.file.originalname}`);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    res.status(500).send("Error uploading file.");
+  }
 });
 
 // TODO: implement /packages endpoint
