@@ -1,11 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import {
-  S3Client,
-  PutObjectCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import * as S3 from "@aws-sdk/client-s3";
 import multer from "multer";
 import cors from "cors";
 import path from "path";
@@ -17,7 +13,7 @@ const port = 8080;
 app.use(express.json());
 
 // Set up the S3 client
-const s3Client = new S3Client({
+const s3Client = new S3.S3Client({
   region: "us-east-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -54,7 +50,7 @@ app.post("/test_upload_file", upload.single("file"), async (req, res) => {
     };
 
     // Upload the file to S3
-    const command = new PutObjectCommand(uploadParams);
+    const command = new S3.PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     res
@@ -72,7 +68,52 @@ app.post("/packages", (req, res) => {});
 
 // TODO: implement /reset endpoint
 // (Reset the registry.)
-app.delete("/reset", (req, res) => {});
+app.delete("/reset", async (req, res) => {
+  try {
+    // Verify X-Authorization header
+    const authToken = req.header("X-Authorization");
+    const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+    if (!authToken) {
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing AuthenticationToken."
+        );
+    }
+    if (authToken !== validToken) {
+      return res
+        .status(401)
+        .send("You do not have permission to reset the registry.");
+    }
+
+    // Get bucket name from environment variables
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    // List all the objects in the bucket
+    const listCommand = new S3.ListObjectsV2Command({ Bucket: bucketName });
+    const listResponse = await s3Client.send(listCommand);
+    const objects = listResponse.Contents;
+
+    if (objects && objects.length > 0) {
+      const deletePromises = objects.map((object) => {
+        const deleteParams = {
+          Bucket: bucketName,
+          Key: object.Key,
+        };
+        return s3Client.send(new S3.DeleteObjectCommand(deleteParams));
+      });
+      await Promise.all(deletePromises);
+    }
+
+    res.status(200).send("Registry is reset.");
+  } catch (error) {
+    console.error("Error resetting registry:", error);
+    res.status(500).send("Error resetting registry.");
+  }
+});
 
 // TODO: implement /package/{id} get endpoint
 // (Interact with the package with this ID.)
