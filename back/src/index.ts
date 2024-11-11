@@ -1,11 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import {
-  S3Client,
-  PutObjectCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import * as S3 from "@aws-sdk/client-s3";
 import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
@@ -17,7 +13,7 @@ const port = 8080;
 app.use(express.json());
 
 // Set up the S3 client
-const s3Client = new S3Client({
+const s3Client = new S3.S3Client({
   region: "us-east-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -54,7 +50,7 @@ app.post("/test_upload_file", upload.single("file"), async (req, res) => {
     };
 
     // Upload the file to S3
-    const command = new PutObjectCommand(uploadParams);
+    const command = new S3.PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     res
