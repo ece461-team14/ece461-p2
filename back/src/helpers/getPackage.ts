@@ -2,6 +2,7 @@ import { info, debug, silent } from "../logger.js";
 
 /**
  * Given a package URL, returns contents as Base64-encoded string
+ * This function assumes that the URL is valid, it does not do any checking
  * @param url URL of package
  * @returns Base64-encoded string of repo contents
  */
