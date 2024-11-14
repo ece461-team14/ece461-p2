@@ -51,11 +51,11 @@ jobs:
           zip -r prod.zip prod
         shell: bash
 
-      - name: Upload production artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: prod.zip
-          path: prod.zip
+      # - name: Upload production artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: prod.zip
+      #     path: prod.zip
 
       - name: Deploy to server
         uses: appleboy/scp-action@master
