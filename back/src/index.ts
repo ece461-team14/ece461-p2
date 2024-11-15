@@ -4,7 +4,7 @@ import express from "express";
 import * as S3 from "@aws-sdk/client-s3";
 import multer from "multer";
 import cors from "cors";
-import path from "path";
+import crypto from "crypto";
 
 // Set up the backend server
 const app = express();
@@ -66,7 +66,6 @@ app.post("/test_upload_file", upload.single("file"), async (req, res) => {
 // (Get the packages from the registry.)
 app.post("/packages", (req, res) => {});
 
-// TODO: implement /reset endpoint
 // (Reset the registry.)
 app.delete("/reset", async (req, res) => {
   try {
@@ -125,7 +124,106 @@ app.post("/package/:id", (req, res) => {});
 
 // TODO: implement /package endpoint
 // (Upload or ingest a new package.)
-app.post("/package", (req, res) => {});
+app.post("/package", async (req, res) => {
+  try {
+    // Verify the X-Authorization header
+    const authToken = req.header("X-Authorization");
+    const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+    if (!authToken) {
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing AuthenticationToken."
+        );
+    }
+    if (authToken !== validToken) {
+      return res
+        .status(401)
+        .send("You do not have permission to upload or ingest packages.");
+    }
+
+    const { Name, Version, JSProgram, Content, URL } = req.body;
+
+    // Validation
+    if (!Name || !Version || !JSProgram || (!Content && !URL)) {
+      return res
+        .status(400)
+        .send(
+          "There is missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set)."
+        );
+    }
+
+    // Generate a package ID based on the name (using a hash for uniqueness)
+    const packageID = crypto.createHash("sha256").update(Name).digest("hex");
+
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    // Check if the package already exists
+    const metadataKey = `${packageID}/metadata.json`;
+    try {
+      await s3Client.send(
+        new S3.HeadObjectCommand({ Bucket: bucketName, Key: metadataKey })
+      );
+      return res.status(409).send("Package exists already.");
+    } catch (err) {
+      if (err.name !== "NotFound") {
+        console.error("Error checking package existence:", err);
+        return res.status(500).send("Error checking package existence.");
+      }
+    }
+
+    // Prepare package metadata
+    const metadata = {
+      Name,
+      Version,
+      ID: packageID,
+    };
+
+    await s3Client.send(
+      new S3.PutObjectCommand({
+        Bucket: bucketName,
+        Key: metadataKey,
+        Body: JSON.stringify(metadata),
+        ContentType: "application/json",
+      })
+    );
+
+    // Upload the package content or ingest from URL
+    const packageKey = `${packageID}/${Version}/package.zip`;
+    if (Content) {
+      await s3Client.send(
+        new S3.PutObjectCommand({
+          Bucket: bucketName,
+          Key: packageKey,
+          Body: Buffer.from(Content, "base64"),
+          ContentType: "application/zip",
+        })
+      );
+    } else if (URL) {
+      // Download the package from the URL
+      // TODO: implement this
+      return res.status(501).send("URL ingestion is not implemented yet.");
+    }
+
+    // Respond with the package information
+    res.status(201).json({
+      metadata,
+      data: {
+        Content: Content ? Content : undefined,
+        URL: URL ? URL : undefined,
+        JSProgram,
+      },
+    });
+  } catch (error) {
+    console.error("Error handling /package request:", error);
+    res
+      .status(500)
+      .send("An error occurred while uploading or ingesting the package.");
+  }
+});
 
 // TODO: implement /package/{id}/rate
 // (Get ratings for this package.)
