@@ -29,6 +29,7 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
+// TODO: remove this for final prod
 // Test file upload endpoint
 app.post("/test_upload_file", upload.single("file"), async (req, res) => {
   try {
