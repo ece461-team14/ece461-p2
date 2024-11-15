@@ -105,16 +105,10 @@ app.put("/authenticate", (req, res) => {});
 // (Get any packages fitting the regular expression.)
 app.post("/package/byRegEx", (req, res) => {});
 
-// FIXME: take out the tracks we aren't doing
 // (Get the list of tracks the team is implementing.)
 app.get("/tracks", (req, res) => {
   try {
-    const tracks = [
-      "Performance track",
-      "Access control track",
-      "High assurance track",
-      "ML inside track",
-    ];
+    const tracks = ["Access control track"];
     res.json({ tracks });
   } catch (err) {
     res.status(500).json({
