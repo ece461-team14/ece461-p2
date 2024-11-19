@@ -11,6 +11,10 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
+  // THESE TWO BELOW ADDED IN COST PUSH
+  const [packageId, setPackageId] = useState<string | null>(null); // state for packageId
+  const [cost, setCost] = useState<string | null>(null); // state for cost
+
   // Function to call the base API endpoint
   const fetchMessage = () => {
     setLoading(true);
@@ -68,8 +72,14 @@ function App() {
     })
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();
+        return response.text();   // changed from .text to .json to address packageId
       })
+      // // ADDED
+      // .then((data) => {
+      //   setMessage(`File uploaded successfully.`);
+      //   setPackageId(data.packageId); // **Added: Store packageId for cost calculation**
+      // })
+      // END OF ADDED
       .then((data) => setMessage(`File uploaded successfully: ${data}`))
       .catch((error) => setError(`Error uploading file: ${error.message}`))
       .finally(() => {
@@ -77,7 +87,28 @@ function App() {
         setFile(null); // Reset file input after upload
       });
   };
+  // BEGINNING OF ADDED STUFF FOR COST
+  // package cost getting function
+  const fetchPackageCost = () => {
+    if (!packageId) {
+      setError('No packageId available to fetch cost.');
+      return;
+    }
 
+    setLoading(true);
+    setError(null);
+    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + `package/${packageId}/cost`;
+
+    fetch(apiUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then((data) => setCost(JSON.stringify(data, null, 2))) // **Added**
+      .catch((error) => setError(`Error fetching cost: ${error.message}`))
+      .finally(() => setLoading(false));
+  };
+  //END OF COST FUNCTION
   return (
     <div className="App">
       <header className="App-header">
@@ -105,6 +136,24 @@ function App() {
           {loading ? 'Uploading...' : 'Upload File'}
         </button>
 
+        {/* SECTION NEW FOR PACKAGE COST */}
+        {/* New button for fetching package cost */}
+        {packageId && ( // **Added: Show button only if packageId is available**
+          <>
+            <p>Uploaded Package ID: {packageId}</p>
+            <button onClick={fetchPackageCost} disabled={loading}>
+              {loading ? 'Fetching Cost...' : 'Get Package Cost'}
+            </button>
+          </>
+        )}
+
+        {/* Display package cost */}
+        {cost && ( //
+          <pre style={{ textAlign: 'left', backgroundColor: '#f0f0f0', padding: '10px' }}>
+            Package Cost: {cost}
+          </pre>
+        )}
+        {/* END OF NEW SECTION */}
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </header>
     </div>
