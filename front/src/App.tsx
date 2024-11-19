@@ -72,15 +72,14 @@ function App() {
     })
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();   // changed from .text to .json to address packageId
+        return response.text();
       })
-      // // ADDED
-      // .then((data) => {
-      //   setMessage(`File uploaded successfully.`);
-      //   setPackageId(data.packageId); // **Added: Store packageId for cost calculation**
-      // })
-      // END OF ADDED
-      .then((data) => setMessage(`File uploaded successfully: ${data}`))
+      // added the setPackageId
+      .then((data) => 
+        // {                    // comment out for cost
+        setMessage(`File uploaded successfully: ${data}`)
+        // setPackageId(data.packageId);}     // comment out for cost
+        )
       .catch((error) => setError(`Error uploading file: ${error.message}`))
       .finally(() => {
         setLoading(false);
@@ -89,25 +88,25 @@ function App() {
   };
   // BEGINNING OF ADDED STUFF FOR COST
   // package cost getting function
-  const fetchPackageCost = () => {
-    if (!packageId) {
-      setError('No packageId available to fetch cost.');
-      return;
-    }
+  // const fetchPackageCost = () => {
+  //   if (!packageId) {
+  //     setError('No packageId available to fetch cost.');    // shouldn't get here because button shouldn't appear without pckageId
+  //     return;
+  //   }
 
-    setLoading(true);
-    setError(null);
-    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + `package/${packageId}/cost`;
+  //   setLoading(true);
+  //   setError(null);
+  //   const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + `package/${packageId}/cost`;
 
-    fetch(apiUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-      })
-      .then((data) => setCost(JSON.stringify(data, null, 2))) // **Added**
-      .catch((error) => setError(`Error fetching cost: ${error.message}`))
-      .finally(() => setLoading(false));
-  };
+  //   fetch(apiUrl)
+  //     .then((response) => {
+  //       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+  //       return response.json();
+  //     })
+  //     .then((data) => setCost(JSON.stringify(data, null, 2)))
+  //     .catch((error) => setError(`Error fetching cost: ${error.message}`))
+  //     .finally(() => setLoading(false));
+  // };
   //END OF COST FUNCTION
   return (
     <div className="App">
@@ -137,7 +136,8 @@ function App() {
         </button>
 
         {/* SECTION NEW FOR PACKAGE COST */}
-        {/* New button for fetching package cost */}
+        {/* 
+        New button for fetching package cost
         {packageId && ( // **Added: Show button only if packageId is available**
           <>
             <p>Uploaded Package ID: {packageId}</p>
@@ -146,14 +146,15 @@ function App() {
             </button>
           </>
         )}
-
+      */}
         {/* Display package cost */}
-        {cost && ( //
+        {/* {cost && ( //
           <pre style={{ textAlign: 'left', backgroundColor: '#f0f0f0', padding: '10px' }}>
             Package Cost: {cost}
           </pre>
-        )}
-        {/* END OF NEW SECTION */}
+        )} */}
+        {/*END OF NEW SECTION */}
+        
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </header>
     </div>
