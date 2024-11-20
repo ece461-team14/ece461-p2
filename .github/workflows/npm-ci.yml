@@ -52,10 +52,10 @@ jobs:
 
       - name: Start application
         run: npm run start &
-        timeout-minutes: 1
 
       - name: Wait for Application to Start
         run: |
+          sleep 60;
           for i in {1..30}; do
             if curl --fail http://localhost:8080; then
               echo "Application started";
