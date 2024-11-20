@@ -22,6 +22,9 @@ jobs:
         run: npm install
 
   # test_app:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+
   #   steps:
   #     - name: Test app:
   #         LOG_LEVEL: 3
@@ -32,15 +35,23 @@ jobs:
   #         cat log.log
 
   test_api:
-    steps:
-      - name: Install Newman:
-        run:
-          npm install -g newman
+    runs-on: ubuntu-latest
+    needs: build
 
-      - name: Start application:
-        run:
-          npm install concurrently # May be unnecessary
-          npm run start
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Start application
+        run: npm run start &
         timeout-minutes: 1
 
       - name: Wait for Application to Start
@@ -54,11 +65,14 @@ jobs:
           done;
           echo "Application did not start in time";
           exit 1;
-      
-      - name: Run Newman Tests
-  run: |
-    for collection in postman_tests/*.json; do
-      echo "Running Newman tests for $collection";
-      newman run "$collection" --reporters cli
-    done
 
+      - name: Run Newman Tests
+        run: |
+          for collection in postman_tests/*.json; do
+            echo "Running Newman tests for $collection";
+            newman run "$collection" --reporters cli;
+          done
+
+      - name: Stop Application
+        run: |
+          pkill -f "node" || true
