@@ -64,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
         run: |
           npm run build:back
-          npm run start:back
+          npm run start:back &
 
       - name: Wait for Application to Start
         run: |
