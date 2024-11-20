@@ -52,7 +52,9 @@ jobs:
         run: npm install -g newman
 
       - name: Start application
-        run: npm run start:back
+        run: |
+          npm run build:back
+          npm run start:back
 
       - name: Wait for Application to Start
         run: |
