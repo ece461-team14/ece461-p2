@@ -21,8 +21,6 @@ jobs:
       - name: Install dependencies
         run: |
           npm install --include=dev
-          npm install -g concurrently
-          npm list concurrently
 
   # test_app:
   #   runs-on: ubuntu-latest
@@ -54,7 +52,7 @@ jobs:
         run: npm install -g newman
 
       - name: Start application
-        run: npm run start &
+        run: npm run start:back
 
       - name: Wait for Application to Start
         run: |
