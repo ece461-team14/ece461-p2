@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "20"
 
@@ -57,7 +57,7 @@ jobs:
       - name: Wait for Application to Start
         run: |
           for i in {1..30}; do
-            if curl --fail http://localhost:3000; then
+            if curl --fail http://localhost:8080; then
               echo "Application started";
               exit 0;
             fi;
