@@ -81,7 +81,7 @@ jobs:
 
       - name: Run Newman Tests
         run: |
-          for collection in postman_tests/*.json; do
+          for collection in api_tests/*.json; do
             echo "Running Newman tests for $collection";
             newman run "$collection" --reporters cli;
           done
