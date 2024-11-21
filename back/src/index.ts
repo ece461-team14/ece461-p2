@@ -5,6 +5,7 @@ import * as S3 from "@aws-sdk/client-s3";
 import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
+import { Readable } from "stream";
 
 // Set up the backend server
 const app = express();
@@ -116,7 +117,84 @@ app.delete("/reset", async (req, res) => {
 
 // TODO: implement /package/{id} get endpoint
 // (Interact with the package with this ID.)
-app.get("/package/:id", (req, res) => {});
+app.get("/package/:id", async (req, res) => {
+  try {
+    const packageId = req.params.id;
+
+    // Verify the X-Authorization header
+    const authToken = req.header("X-Authorization");
+    const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+    if (!authToken) {
+      return res
+        .status(403)
+        .send("Authentication failed due to missing AuthenticationToken.");
+    }
+    if (authToken !== validToken) {
+      return res.status(401).send("You do not have permission to access this package.");
+    }
+
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    // Construct the metadata key
+    const metadataKey = `${packageId}/metadata.json`;
+
+    // Check if the package exists by attempting to retrieve its metadata
+    try {
+      await s3Client.send(new S3.HeadObjectCommand({ Bucket: bucketName, Key: metadataKey }));
+    } catch (err) {
+      if (err.name === "NotFound") {
+        return res.status(404).send("Package not found.");
+      } else {
+        console.error("Error checking package existence:", err);
+        return res.status(500).send("Error retrieving package metadata.");
+      }
+    }
+
+    // Fetch the metadata from S3
+    const metadataResponse = await s3Client.send(
+      new S3.GetObjectCommand({
+        Bucket: bucketName,
+        Key: metadataKey,
+      })
+    );
+
+    const metadata = JSON.parse(await streamToString(metadataResponse.Body as ReadableStream));
+
+    // Fetch the package content (assuming it's stored as a zip file)
+    const packageKey = `${packageId}/${metadata.Version}/package.zip`;
+    const packageResponse = await s3Client.send(
+      new S3.GetObjectCommand({
+        Bucket: bucketName,
+        Key: packageKey,
+      })
+    );
+
+    const content = await streamToString(packageResponse.Body as ReadableStream);
+
+    // Respond with the package metadata and content
+    res.status(200).json({
+      metadata,
+      data: {
+        Content: content, // Could send as base64 if needed
+      },
+    });
+  } catch (error) {
+    console.error("Error handling /package/:id request:", error);
+    res.status(500).send("An error occurred while retrieving the package.");
+  }
+});
+
+// Utility function to convert a stream to string (for response bodies)
+async function streamToString(stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (let chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString("utf-8");
+}
 
 // TODO: implement /package/{id} post endpoint
 // (Update the content of this package.)
@@ -234,24 +312,21 @@ app.get("/package/:id/rate", (req, res) => {});
 // (Get the cost of this package.)
 app.get("/package/:id/cost", async (req, res) => {
   try {
-      // Extract and validate the required headers and parameters
       const authToken = req.header("X-Authorization");      // same as other call
       const validToken = process.env.AUTH_TOKEN;            // same as other call
       const packageId = req.params.id;                      // get package id according to spec
       const includeDependency = req.query.dependency === 'true';  // for if the cost includes dependencies
 
-      // top add in again when not just testing
-      // if (!authToken) {                                     // same as previous api structure
-      //   return res
-      //     .status(403)
-      //     .send("Authentication failed due to invalid or missing AuthenticationToken.");
-      // }
-      // if (authToken !== validToken) {                       // same as previous api structure (but for costs)
-      //   return res
-      //     .status(401)
-      //     .send("You do not have permission to access package costs.");
-      // }
-      // bottom add back in when not just testing
+      if (!authToken) {                                     // same as previous api structure
+        return res
+          .status(403)
+          .send("Authentication failed due to invalid or missing AuthenticationToken.");
+      }
+      if (authToken !== validToken) {                       // same as previous api structure (but for costs)
+        return res
+          .status(401)
+          .send("You do not have permission to access package costs.");
+      }
 
 
       if (!packageId) {                                     // new because we need package ID acessible to get cost
