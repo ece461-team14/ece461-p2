@@ -82,7 +82,7 @@ jobs:
         env:
           AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
         run: |
-          echo $AUTH_TOKEN
+          echo "AUTH_TOKEN is $AUTH_TOKEN"
           cd api_tests/
           for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
