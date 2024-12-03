@@ -31,40 +31,6 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// TODO: remove this for final prod
-// Test file upload endpoint
-app.post("/test_upload_file", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).send("No file uploaded.");
-    }
-
-    const bucketName = process.env.S3_BUCKET;
-    if (!bucketName) {
-      return res.status(500).send("S3 bucket name is not set.");
-    }
-
-    // Define the parameters for the S3 upload
-    const uploadParams = {
-      Bucket: bucketName,
-      Key: req.file.originalname, // Using the original file name as the key
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
-    };
-
-    // Upload the file to S3
-    const command = new S3.PutObjectCommand(uploadParams);
-    await s3Client.send(command);
-
-    res
-      .status(200)
-      .send(`File uploaded successfully: ${req.file.originalname}`);
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    res.status(500).send("Error uploading file.");
-  }
-});
-
 // (Get the packages from the registry.)
 app.post("/packages", async (req, res) => {
   try {

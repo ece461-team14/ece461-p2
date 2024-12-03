@@ -160,28 +160,6 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>Press the button to get a message from the back-end:</p>
-        <button onClick={fetchMessage} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Message'}
-        </button>
-        {message && <p>Back-end Response: {message}</p>}
-
-        <p>Press the button to get tracks from the back-end:</p>
-        <button onClick={fetchTracks} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Tracks'}
-        </button>
-        {tracks && (
-          <pre style={{ textAlign: 'left', backgroundColor: '#f0f0f0', padding: '10px' }}>
-            Tracks Response: {tracks}
-          </pre>
-        )}
-
-        {/* New file upload section */}
-        <p>Choose a file to upload:</p>
-        <input type="file" onChange={handleFileChange} />
-        <button onClick={uploadFile} disabled={loading || !file}>
-          {loading ? 'Uploading...' : 'Upload File'}
-        </button>
 
         {/* SECTION NEW FOR PACKAGE COST */}
         
