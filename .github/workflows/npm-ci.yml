@@ -81,7 +81,6 @@ jobs:
       - name: Run Newman Tests
         env:
           AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
-          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         run: |
           echo "AUTH_TOKEN is $AUTH_TOKEN"
           cd api_tests/
