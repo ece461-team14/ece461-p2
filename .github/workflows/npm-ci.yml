@@ -62,7 +62,6 @@ jobs:
           LOG_LEVEL: 3
           LOG_FILE: "log.log"
           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
         run: |
           npm run build:back
           npm run start:back &
@@ -80,7 +79,10 @@ jobs:
           exit 1;
 
       - name: Run Newman Tests
+        env:
+          AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
         run: |
+          echo $AUTH_TOKEN
           cd api_tests/
           for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
