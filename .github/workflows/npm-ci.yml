@@ -67,9 +67,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AUTH_TOKEN: "ECE461"
         run: |
-          echo "AUTH_TOKEN is $AUTH_TOKEN"
           npm run build:back
-          npm run start:back > backend.log &
+          npm run start:back &
 
       - name: Wait for Application to Start
         run: |
@@ -85,12 +84,10 @@ jobs:
 
       - name: Run Newman Tests
         run: |
-          echo "AUTH_TOKEN is $AUTH_TOKEN"
           cd api_tests/
           for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
-            newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman_environment.json || cat ../backend.log;
-            cat ../backend.log
+            newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman_environment.json || echo "FAILED";
           done
 
       - name: Stop Application
