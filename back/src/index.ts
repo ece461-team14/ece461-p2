@@ -6,6 +6,9 @@ import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
 
+let envAuthToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+console.log('Backend Auth Token = ', envAuthToken);
+
 // Set up the backend server
 const app = express();
 app.use(cors());
