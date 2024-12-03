@@ -76,6 +76,9 @@ app.delete("/reset", async (req, res) => {
     // Verify X-Authorization header
     const authToken = req.header("X-Authorization");
     const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+    console.log('Received Auth Token = ', authToken);
+    console.log('System Auth Token = ', validToken);
+    console.log(authToken == validToken);
     if (!authToken) {
       return res
         .status(403)
