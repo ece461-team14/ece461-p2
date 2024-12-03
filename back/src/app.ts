@@ -67,13 +67,12 @@ export async function main(testFile?: string) {
   } catch (err) {
     await info(`Error reading file: ${filename}. Error: ${err.message}`);
     process.exit(1);
-  } finally {
-    if (testFile) {
-      return ndjsonOutput;
-    } else {
-      await info("Program ended");
-      process.exit(0);
-    }
+  }
+  if (testFile) {
+    return ndjsonOutput;
+  } else {
+    await info("Program ended");
+    process.exit(0);
   }
 }
 

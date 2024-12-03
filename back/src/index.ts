@@ -525,7 +525,7 @@ app.post("/package", async (req, res) => {
 
 // TODO: implement /package/{id}/rate
 // (Get ratings for this package.)
-app.get("/package/:id/rate", (req, res) => {});
+// app.get("/package/:id/rate", (req, res) => {});
 
 // TODO: implement /package/{id}/cost
 // /package/{id}/cost endpoint
@@ -646,11 +646,11 @@ app.get("/package/:id/cost", async (req, res) => {
 //  endpoint
 // (Create an access token.)
 // (NON-BASELINE)
-app.put("/authenticate", (req, res) => {});
+// app.put("/authenticate", (req, res) => {});
 
 // TODO: implement /package/byRegEx
 // (Get any packages fitting the regular expression.)
-app.post("/package/byRegEx", (req, res) => {});
+// app.post("/package/byRegEx", (req, res) => {});
 
 // (Get the list of tracks the team is implementing.)
 app.get("/tracks", (req, res) => {
