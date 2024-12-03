@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "AUTH_TOKEN is $AUTH_TOKEN"
           npm run build:back
-          npm run start:back > backend.log 2>&1 &
+          npm run start:back > backend.log &
 
       - name: Wait for Application to Start
         run: |
