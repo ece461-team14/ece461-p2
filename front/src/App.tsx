@@ -5,82 +5,12 @@ import './App.css';
 function App() {
   //--------------------------------
   // State management for API responses and errors
-  const [message, setMessage] = useState<string>('');
-  const [tracks, setTracks] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
 
   // THESE TWO BELOW ADDED IN COST PUSH
   const [cost, setCost] = useState<string | null>(null); // state for cost
 
-  // Function to call the base API endpoint
-  const fetchMessage = () => {
-    setLoading(true);
-    setError(null);
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/';
-
-    fetch(apiUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();
-      })
-      .then((data) => setMessage(data))
-      .catch((error) => setError(`Error fetching message: ${error.message}`))
-      .finally(() => setLoading(false));
-  };
-
-  // Function to call the "tracks" API endpoint
-  const fetchTracks = () => {
-    setLoading(true);
-    setError(null);
-    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + 'tracks';
-
-    fetch(apiUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-      })
-      .then((data) => setTracks(JSON.stringify(data, null, 2)))
-      .catch((error) => setError(`Error fetching tracks: ${error.message}`))
-      .finally(() => setLoading(false));
-  };
-
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFile(e.target.files[0]);
-  };
-
-  // Function to call the "test_upload_file" endpoint
-  const uploadFile = () => {
-    if (!file) {
-      setError('Please select a file first.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    const apiUrl = (process.env.REACT_APP_API_URL || 'http://localhost:8080/') + 'test_upload_file';
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    fetch(apiUrl, {
-      method: 'POST',
-      body: formData,
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();
-      })
-      // added the setPackageId
-      .then((data) => setMessage(`File uploaded successfully: ${data}`))
-      .catch((error) => setError(`Error uploading file: ${error.message}`))
-      .finally(() => {
-        setLoading(false);
-        setFile(null); // Reset file input after upload
-      });
-  };
   // BEGINNING OF ADDED STUFF FOR COST
   
   // handle getting the package ID
