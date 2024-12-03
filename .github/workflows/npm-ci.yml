@@ -89,7 +89,7 @@ jobs:
           for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
             newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman_environment.json;
-            cat backend.log
+            cat ../backend.log
           done
 
       - name: Stop Application
