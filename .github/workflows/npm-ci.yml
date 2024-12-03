@@ -67,7 +67,6 @@ jobs:
           echo "AUTH_TOKEN is $AUTH_TOKEN"
           npm run build:back
           npm run start:back > backend.log 2>&1 &
-          tail -f backend.log &
 
       - name: Wait for Application to Start
         run: |
@@ -90,6 +89,7 @@ jobs:
           for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
             newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman_environment.json;
+            cat backend.log
           done
 
       - name: Stop Application
