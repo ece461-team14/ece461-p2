@@ -7,7 +7,9 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "outDir": "dist",
-    "allowJs": true
+    "allowJs": true,
+    "inlineSourceMap": false,       // Separate .map files are better for nyc
+    "inlineSources": true,          // Include TypeScript code in the .map files
   },
   "include": [
     "back/src/**/*.ts",
