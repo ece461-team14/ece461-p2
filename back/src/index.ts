@@ -6,6 +6,7 @@ import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
 import { Readable } from "stream";
+import axios from "axios";
 // import { processUrl } from "./app.js"
 
 // Set up the backend server
@@ -231,7 +232,7 @@ app.post("/package", async (req, res) => {
   try {
     // Verify the X-Authorization header
     const authToken = req.header("X-Authorization");
-    const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
+    const validToken = process.env.AUTH_TOKEN; // Get the valid auth token from the environment
     if (!authToken) {
       return res
         .status(403)
@@ -247,16 +248,16 @@ app.post("/package", async (req, res) => {
 
     const { Name, Version, JSProgram, Content, URL } = req.body;
 
-    // Validation
+    // Validate the request body
     if (!Name || !Version || !JSProgram || (!Content && !URL)) {
       return res
         .status(400)
         .send(
-          "There is missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set)."
+          "There are missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set)."
         );
     }
 
-    // Generate a package ID based on the name (using a hash for uniqueness)
+    // Generate a package ID based on the name (using SHA-256 hash for uniqueness)
     const packageID = crypto.createHash("sha256").update(Name).digest("hex");
 
     const bucketName = process.env.S3_BUCKET;
@@ -270,7 +271,7 @@ app.post("/package", async (req, res) => {
       await s3Client.send(
         new S3.HeadObjectCommand({ Bucket: bucketName, Key: metadataKey })
       );
-      return res.status(409).send("Package exists already.");
+      return res.status(409).send("Package already exists.");
     } catch (err) {
       if (err.name !== "NotFound") {
         console.error("Error checking package existence:", err);
@@ -281,15 +282,20 @@ app.post("/package", async (req, res) => {
     // Prepare package metadata
     const metadata = {
       Name,
-      Version,
       ID: packageID,
+      Version: {
+        VersionNumber: Version,
+        UploadedBy: authToken,
+        UploadedAt: new Date().toISOString(),
+      },
     };
 
+    // Upload metadata.json
     await s3Client.send(
       new S3.PutObjectCommand({
         Bucket: bucketName,
         Key: metadataKey,
-        Body: JSON.stringify(metadata),
+        Body: JSON.stringify(metadata, null, 2),
         ContentType: "application/json",
       })
     );
@@ -306,17 +312,83 @@ app.post("/package", async (req, res) => {
         })
       );
     } else if (URL) {
-      // Download the package from the URL
-      // TODO: implement this
-      return res.status(501).send("URL ingestion is not implemented yet.");
+      // Download the package from the URL and upload it
+      const isGithub = URL.includes("github.com");
+      const isNPM = URL.includes("npmjs.com");
+
+      if (isGithub) {
+        // download the package from github
+        const archiveURl = `${URL}/archive/refs/heads/main.zip`;
+        try {
+          const packageData = await axios.get(archiveURl, {
+            responseType: "arraybuffer",
+          });
+          await s3Client.send(
+            new S3.PutObjectCommand({
+              Bucket: bucketName,
+              Key: packageKey,
+              Body: packageData.data,
+              ContentType: "application/zip",
+            })
+          );
+        } catch (err) {
+          console.error("Error downloading package from GitHub:", err);
+          return res.status(500).send("Error downloading package from GitHub.");
+        }
+      } else if (isNPM) {
+        // NPM-specific handling
+        try {
+          // Extract the package name from the URL
+          const packageName = URL.split("/").pop();
+          const npmRegistryUrl = `https://registry.npmjs.org/${packageName}`;
+
+          // Fetch the package metadata from the NPM registry
+          const npmResponse = await axios.get(npmRegistryUrl);
+          const tarballUrl = npmResponse.data["dist-tags"]?.latest
+            ? npmResponse.data.versions[npmResponse.data["dist-tags"].latest]
+                .dist.tarball
+            : null;
+
+          if (!tarballUrl) {
+            return res
+              .status(400)
+              .send(
+                "Unable to determine tarball URL for the specified NPM package."
+              );
+          }
+
+          // Download the tarball
+          const packageData = await axios.get(tarballUrl, {
+            responseType: "arraybuffer",
+          });
+          await s3Client.send(
+            new S3.PutObjectCommand({
+              Bucket: bucketName,
+              Key: packageKey,
+              Body: packageData.data,
+              ContentType: "application/gzip",
+            })
+          );
+        } catch (err) {
+          console.error("Error downloading or uploading NPM package:", err);
+          return res
+            .status(500)
+            .send("Error downloading or uploading the NPM package.");
+        }
+      } else {
+        return res
+          .status(400)
+          .send(
+            "Unsupported URL format. Only GitHub and NPM URLs are supported."
+          );
+      }
     }
 
     // Respond with the package information
     res.status(201).json({
+      message: "Package uploaded successfully",
       metadata,
       data: {
-        Content: Content ? Content : undefined,
-        URL: URL ? URL : undefined,
         JSProgram,
       },
     });
