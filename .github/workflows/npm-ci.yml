@@ -62,7 +62,9 @@ jobs:
           LOG_LEVEL: 3
           LOG_FILE: "log.log"
           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
-          S3_BUCKET: "tpr-dev-storage"
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AUTH_TOKEN: "ECE461"
         run: |
           echo "AUTH_TOKEN is $AUTH_TOKEN"
@@ -82,8 +84,6 @@ jobs:
           exit 1;
 
       - name: Run Newman Tests
-        env:
-          AUTH_TOKEN: "ECE461"
         run: |
           echo "AUTH_TOKEN is $AUTH_TOKEN"
           cd api_tests/
