@@ -78,7 +78,7 @@ app.delete("/reset", async (req, res) => {
     const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
     console.log('Received Auth Token = ', authToken);
     console.log('System Auth Token = ', validToken);
-    console.log(authToken == validToken);
+    console.log(authToken === validToken);
     if (!authToken) {
       return res
         .status(403)
@@ -86,7 +86,7 @@ app.delete("/reset", async (req, res) => {
           "Authentication failed due to invalid or missing AuthenticationToken."
         );
     }
-    if (authToken !== validToken) {
+    if (authToken != validToken) {
       return res
         .status(401)
         .send("You do not have permission to reset the registry.");
