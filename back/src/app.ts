@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { info, debug, silent } from "./logger.js";
 
-async function processUrl(url: string) {
+export async function processUrl(url: string) {
   try {
     const startTime = Date.now();
     const score = await ms.netScore(url);

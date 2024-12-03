@@ -5,7 +5,8 @@ import * as S3 from "@aws-sdk/client-s3";
 import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
-import { Readable } from "stream"
+import { Readable } from "stream";
+// import { processUrl } from "./app.js"
 
 // Set up the backend server
 const app = express();
@@ -66,7 +67,61 @@ app.post("/test_upload_file", upload.single("file"), async (req, res) => {
 
 // TODO: implement /packages endpoint
 // (Get the packages from the registry.)
-app.post("/packages", (req, res) => {});
+app.post("/packages", async (req, res) => {
+  try {
+    const authToken = req.header("X-Authorization");
+    const validToken = process.env.AUTH_TOKEN;
+
+    if (!authToken) {
+      return res
+        .status(403)
+        .send("Authentication failed due to missing AuthenticationToken.");
+    }
+    if (authToken !== validToken) {
+      return res
+        .status(401)
+        .send("You do not have permission to access the registry.");
+    }
+
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    const listCommand = new S3.ListObjectsV2Command({ Bucket: bucketName });
+    const listResponse = await s3Client.send(listCommand);
+
+    if (!listResponse.Contents || listResponse.Contents.length === 0) {
+      return res.status(200).json({ packages: [] });
+    }
+
+    const metadataPromises = listResponse.Contents.filter((object) =>
+      object.Key.endsWith("metadata.json")
+    ).map(async (object) => {
+      const metadataKey = object.Key;
+      try {
+        const metadataResponse = await s3Client.send(
+          new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
+        );
+        const metadataBody = await metadataResponse.Body.transformToString();
+        const metadata = JSON.parse(metadataBody);
+        return metadata.Name || null; // Return null if "Name" is missing
+      } catch (err) {
+        console.error(`Error retrieving metadata for ${metadataKey}:`, err);
+        return null;
+      }
+    });
+
+    const packageNames = (await Promise.all(metadataPromises)).filter(
+      (name) => name !== null
+    );
+
+    res.status(200).json({ packages: packageNames });
+  } catch (error) {
+    console.error("Error handling /packages request:", error);
+    res.status(500).send("An error occurred while retrieving the packages.");
+  }
+});
 
 // (Reset the registry.)
 app.delete("/reset", async (req, res) => {
@@ -116,33 +171,38 @@ app.delete("/reset", async (req, res) => {
   }
 });
 
-// TODO: implement /package/{id} get endpoint
 // (Interact with the package with this ID.)
 app.get("/package/:id", async (req, res) => {
   try {
     const packageId = req.params.id;
 
-    const authToken = req.header("X-Authorization");  // verify header
+    const authToken = req.header("X-Authorization"); // verify header
     const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
-    if (!authToken) {                           // if no auth token
+    if (!authToken) {
+      // if no auth token
       return res
         .status(403)
         .send("Authentication failed due to missing AuthenticationToken.");
     }
-    if (authToken !== validToken) {             // if auth token invalid
-      return res.status(401).send("You do not have permission to access this package.");
+    if (authToken !== validToken) {
+      // if auth token invalid
+      return res
+        .status(401)
+        .send("You do not have permission to access this package.");
     }
 
-    const bucketName = process.env.S3_BUCKET;   // if issues with s# bucket
+    const bucketName = process.env.S3_BUCKET; // if issues with s# bucket
     if (!bucketName) {
       return res.status(500).send("S3 bucket name is not set.");
     }
 
-    const metadataKey = `${packageId}/metadata.json`;   // metadata key
+    const metadataKey = `${packageId}/metadata.json`; // metadata key
 
     // check package existence using package id
     try {
-      await s3Client.send(new S3.HeadObjectCommand({ Bucket: bucketName, Key: metadataKey }));
+      await s3Client.send(
+        new S3.HeadObjectCommand({ Bucket: bucketName, Key: metadataKey })
+      );
     } catch (err) {
       if (err.name === "NotFound") {
         return res.status(404).send("Package not found.");
@@ -152,16 +212,19 @@ app.get("/package/:id", async (req, res) => {
       }
     }
 
-    const metadataResponse = await s3Client.send(   // fetch metadata
+    const metadataResponse = await s3Client.send(
+      // fetch metadata
       new S3.GetObjectCommand({
         Bucket: bucketName,
         Key: metadataKey,
       })
     );
 
-    const metadata = JSON.parse(await streamToString(metadataResponse.Body as Readable));   // turn to readable string
+    const metadata = JSON.parse(
+      await streamToString(metadataResponse.Body as Readable)
+    ); // turn to readable string
 
-    const packageKey = `${packageId}/${metadata.Version}/package.zip`;    // fetch package content
+    const packageKey = `${packageId}/${metadata.Version}/package.zip`; // fetch package content
     const packageResponse = await s3Client.send(
       new S3.GetObjectCommand({
         Bucket: bucketName,
@@ -169,9 +232,10 @@ app.get("/package/:id", async (req, res) => {
       })
     );
 
-    const content = await streamToString(packageResponse.Body as Readable);   // make package content readable in the same way as the metadata
+    const content = await streamToString(packageResponse.Body as Readable); // make package content readable in the same way as the metadata
 
-    res.status(200).json({      // respond with the data in the Readable format
+    res.status(200).json({
+      // respond with the data in the Readable format
       metadata,
       data: {
         Content: content, // can modify how content is sent (could send in base64)
@@ -308,107 +372,113 @@ app.get("/package/:id/rate", (req, res) => {});
 // (Get the cost of this package.)
 app.get("/package/:id/cost", async (req, res) => {
   try {
-      // Extract and validate the required headers and parameters
-      const authToken = req.header("X-Authorization");      // same as other call
-      const validToken = process.env.AUTH_TOKEN;            // same as other call
-      const packageId = req.params.id;                      // get package id according to spec
-      const includeDependency = req.query.dependency === 'true';  // for if the cost includes dependencies
+    // Extract and validate the required headers and parameters
+    const authToken = req.header("X-Authorization"); // same as other call
+    const validToken = process.env.AUTH_TOKEN; // same as other call
+    const packageId = req.params.id; // get package id according to spec
+    const includeDependency = req.query.dependency === "true"; // for if the cost includes dependencies
 
-      // top add in again when not just testing
-      // if (!authToken) {                                     // same as previous api structure
-      //   return res
-      //     .status(403)
-      //     .send("Authentication failed due to invalid or missing AuthenticationToken.");
-      // }
-      // if (authToken !== validToken) {                       // same as previous api structure (but for costs)
-      //   return res
-      //     .status(401)
-      //     .send("You do not have permission to access package costs.");
-      // }
-      // bottom add back in when not just testing
+    // top add in again when not just testing
+    // if (!authToken) {                                     // same as previous api structure
+    //   return res
+    //     .status(403)
+    //     .send("Authentication failed due to invalid or missing AuthenticationToken.");
+    // }
+    // if (authToken !== validToken) {                       // same as previous api structure (but for costs)
+    //   return res
+    //     .status(401)
+    //     .send("You do not have permission to access package costs.");
+    // }
+    // bottom add back in when not just testing
 
+    if (!packageId) {
+      // new because we need package ID acessible to get cost
+      return res
+        .status(400)
+        .send("There is missing field(s) in the PackageID.");
+    }
 
-      if (!packageId) {                                     // new because we need package ID acessible to get cost
-        return res
-          .status(400)
-          .send("There is missing field(s) in the PackageID.");
+    const bucketName = process.env.S3_BUCKET; // s3 bucket must be referenced
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
+
+    const metadataKey = `${packageId}/metadata.json`; // retrieve metadata
+    let packageMetadata;
+    try {
+      const metadataResponse = await s3Client.send(
+        new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
+      );
+      const metadataBody = await metadataResponse.Body.transformToString();
+      packageMetadata = JSON.parse(metadataBody);
+    } catch (err) {
+      if (err.name === "NoSuchKey") {
+        return res.status(404).send("Package does not exist.");
       }
+      console.error("Error retrieving package metadata:", err);
+      return res.status(500).send("Error retrieving package metadata.");
+    }
 
-      const bucketName = process.env.S3_BUCKET;             // s3 bucket must be referenced
-      if (!bucketName) {
-          return res.status(500).send("S3 bucket name is not set.");
-      }
+    // get the costs from the data
+    const calculateTotalCost = async (id) => {
+      const metadataKey = `${id}/metadata.json`;
+      try {
+        const metadataResponse = await s3Client.send(
+          new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
+        );
+        const metadataBody = await metadataResponse.Body.transformToString();
+        const packageData = JSON.parse(metadataBody);
 
-      const metadataKey = `${packageId}/metadata.json`;     // retrieve metadata
-        let packageMetadata;
-        try {
-          const metadataResponse = await s3Client.send(
-            new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
-          );
-          const metadataBody = await metadataResponse.Body.transformToString();
-          packageMetadata = JSON.parse(metadataBody);
-        } catch (err) {
-          if (err.name === "NoSuchKey") {
-            return res.status(404).send("Package does not exist.");
+        let totalCost = packageData.standaloneCost || 0;
+        if (includeDependency && packageData.dependencies) {
+          for (const depId of packageData.dependencies) {
+            const depCost = await calculateTotalCost(depId);
+            totalCost += depCost.totalCost;
           }
-          console.error("Error retrieving package metadata:", err);
-          return res.status(500).send("Error retrieving package metadata.");
         }
+        return {
+          standaloneCost: packageData.standaloneCost || 0,
 
-        // get the costs from the data
-        const calculateTotalCost = async (id) => {
-          const metadataKey = `${id}/metadata.json`;
-          try {
-            const metadataResponse = await s3Client.send(
-              new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
-            );
-            const metadataBody = await metadataResponse.Body.transformToString();
-            const packageData = JSON.parse(metadataBody);
-
-            let totalCost = packageData.standaloneCost || 0;
-            if (includeDependency && packageData.dependencies) {
-              for (const depId of packageData.dependencies) {
-                const depCost = await calculateTotalCost(depId);
-                totalCost += depCost.totalCost;
-              }
-            }
-            return {
-              standaloneCost: packageData.standaloneCost || 0,
-              
-              totalCost,
-            };
-            
-          } catch (err) {
-            console.error(`Error calculating cost for package ${id}:`, err);
-            throw new Error("Error calculating package cost.");
-          }
+          totalCost,
         };
-
-        // actually calculate costs
-        try {
-          const cost = await calculateTotalCost(packageId);
-
-          const response = includeDependency
-          ? {[packageId]: cost, ...(packageMetadata.dependencies || []).reduce(async (accPromise, depId) => {
-              const acc = await accPromise;
-              const depCost = await calculateTotalCost(depId);    // we calculate the cost for each dependency
-              return {
-              ...acc,
-              [depId]: depCost,                                   // and we add the dependency cost to the total cost
-              };
-            }, Promise.resolve({})),
-          }
-          : {[packageId]: { totalCost: cost.totalCost },};  // total cost is just cost (no dependencies)
-          return res.status(200).json(response);
-        } catch (error) {
-          console.error("Error calculating package cost:", error);
-          return res
-            .status(500)
-            .send("The package rating system choked on at least one of the metrics.");    // as per spec
+      } catch (err) {
+        console.error(`Error calculating cost for package ${id}:`, err);
+        throw new Error("Error calculating package cost.");
       }
+    };
+
+    // actually calculate costs
+    try {
+      const cost = await calculateTotalCost(packageId);
+
+      const response = includeDependency
+        ? {
+            [packageId]: cost,
+            ...(packageMetadata.dependencies || []).reduce(
+              async (accPromise, depId) => {
+                const acc = await accPromise;
+                const depCost = await calculateTotalCost(depId); // we calculate the cost for each dependency
+                return {
+                  ...acc,
+                  [depId]: depCost, // and we add the dependency cost to the total cost
+                };
+              },
+              Promise.resolve({})
+            ),
+          }
+        : { [packageId]: { totalCost: cost.totalCost } }; // total cost is just cost (no dependencies)
+      return res.status(200).json(response);
+    } catch (error) {
+      console.error("Error calculating package cost:", error);
+      return res
+        .status(500)
+        .send(
+          "The package rating system choked on at least one of the metrics."
+        ); // as per spec
+    }
   } catch (error) {
-      console.error("Error handling /package/:id/cost request:", error);
-      res.status(500).send("An error occurred while processing the request.");    // to cover the whole api structure as an error
+    console.error("Error handling /package/:id/cost request:", error);
+    res.status(500).send("An error occurred while processing the request."); // to cover the whole api structure as an error
   }
 });
 
