@@ -49,7 +49,16 @@ app.post("/packages", async (req, res) => {
         .send("You do not have permission to access the registry.");
     }
 
+    const { body: queries } = req;
+    if (!Array.isArray(queries) || queries.some((q) => typeof q !== "object")) {
+      return res
+        .status(400)
+        .send("Invalid PackageQuery array in request body.");
+    }
+
+    const offset = parseInt(req.header("offset") || "0", 10);
     const bucketName = process.env.S3_BUCKET;
+
     if (!bucketName) {
       return res.status(500).send("S3 bucket name is not set.");
     }
@@ -58,7 +67,8 @@ app.post("/packages", async (req, res) => {
     const listResponse = await s3Client.send(listCommand);
 
     if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      return res.status(200).json({ packages: [] });
+      res.setHeader("offset", offset + 0); // No next page
+      return res.status(200).json([]);
     }
 
     const metadataPromises = listResponse.Contents.filter((object) =>
@@ -70,19 +80,51 @@ app.post("/packages", async (req, res) => {
           new S3.GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
         );
         const metadataBody = await metadataResponse.Body.transformToString();
-        const metadata = JSON.parse(metadataBody);
-        return metadata.Name || null; // Return null if "Name" is missing
+        return JSON.parse(metadataBody);
       } catch (err) {
         console.error(`Error retrieving metadata for ${metadataKey}:`, err);
         return null;
       }
     });
 
-    const packageNames = (await Promise.all(metadataPromises)).filter(
-      (name) => name !== null
+    const allPackages = (await Promise.all(metadataPromises)).filter(
+      (metadata) => metadata !== null
     );
 
-    res.status(200).json({ packages: packageNames });
+    // Apply filters from PackageQuery
+    const filteredPackages = allPackages.filter((pkg) => {
+      return queries.some((query) => {
+        // check name
+        const nameMatches = query.name === "*" || pkg.Name === query.name;
+
+        // check version
+        const versionMatches = query.version
+          ? pkg.Version.VersionNumber === query.version
+          : true;
+        return nameMatches && versionMatches;
+      });
+    });
+
+    // Enforce limit to avoid too many results
+    if (filteredPackages.length > 1000) {
+      return res.status(413).send("Too many packages returned.");
+    }
+
+    // Paginate results
+    const paginatedPackages = filteredPackages.slice(offset, offset + 10);
+    const nextOffset = offset + paginatedPackages.length;
+
+    // Set offset header
+    res.setHeader("offset", nextOffset);
+
+    // Structure response
+    const response = paginatedPackages.map((pkg) => ({
+      Name: pkg.Name,
+      ID: pkg.ID,
+      Version: pkg.Version,
+    }));
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Error handling /packages request:", error);
     res.status(500).send("An error occurred while retrieving the packages.");
