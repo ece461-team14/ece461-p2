@@ -86,7 +86,7 @@ app.delete("/reset", async (req, res) => {
           "Authentication failed due to invalid or missing AuthenticationToken."
         );
     }
-    if (authToken != validToken) {
+    if (authToken !== validToken) {
       return res
         .status(401)
         .send("You do not have permission to reset the registry.");
