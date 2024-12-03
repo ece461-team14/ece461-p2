@@ -65,7 +65,6 @@ app.post("/test_upload_file", upload.single("file"), async (req, res) => {
   }
 });
 
-// TODO: implement /packages endpoint
 // (Get the packages from the registry.)
 app.post("/packages", async (req, res) => {
   try {
