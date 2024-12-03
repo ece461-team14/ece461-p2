@@ -80,9 +80,10 @@ jobs:
 
       - name: Run Newman Tests
         run: |
-          for collection in api_tests/*.json; do
+          cd api_tests/
+          for collection in *.postman_collection.json; do
             echo "Running Newman tests for $collection";
-            newman run "$collection" --reporters cli;
+            newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman-environment.json;
           done
 
       - name: Stop Application

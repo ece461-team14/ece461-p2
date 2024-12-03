@@ -1,52 +1,14 @@
 {
 	"info": {
-		"_postman_id": "09ace906-6390-4db5-a68b-d7c1420bbb81",
-		"name": "GET Requests",
+		"_postman_id": "3f79ba64-94d8-4f45-b310-0593888c77f0",
+		"name": "/tracks",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "39859783",
-		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-09ace906-6390-4db5-a68b-d7c1420bbb81?action=share&source=collection_link&creator=39859783"
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-3f79ba64-94d8-4f45-b310-0593888c77f0?action=share&source=collection_link&creator=39859783"
 	},
 	"item": [
 		{
-			"name": "Hello World",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// Validate that the response code should be 200",
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});",
-							"",
-							"// Validate that the response says 'Hello World!'",
-							"pm.test(\"Response to say 'Hello World!'\", function () {",
-							"    pm.expect(pm.response).to.equal.toString('Hello World!');",
-							"});",
-							""
-						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080"
-				},
-				"description": "The tests in this request validate that:\n\n- the response code is 200\n- the response is a JSON object\n- the response has an 'arg' object\n- the response has 'headers' object\n- the response has a 'URL' property"
-			},
-			"response": []
-		},
-		{
-			"name": "tracks",
+			"name": "tracks_valid",
 			"event": [
 				{
 					"listen": "test",
