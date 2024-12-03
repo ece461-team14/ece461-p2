@@ -2,12 +2,18 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import * as S3 from "@aws-sdk/client-s3";
-import multer from "multer";
 import cors from "cors";
 import crypto from "crypto";
 import { Readable } from "stream";
 import axios from "axios";
+import fs from "fs/promises";
+import jwt from "jsonwebtoken";
 // import { processUrl } from "./app.js"
+import {
+  User,
+  AuthenticationRequest,
+  AuthenticationToken,
+} from "./types/GitHubFile.js";
 
 // Set up the backend server
 const app = express();
@@ -24,8 +30,9 @@ const s3Client = new S3.S3Client({
   },
 });
 
-// Set up the multer storage
-const upload = multer({ storage: multer.memoryStorage() });
+// set up the users database
+const USERS_FILE = "./users.json";
+const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -232,7 +239,7 @@ app.get("/package/:id", async (req, res) => {
       await streamToString(metadataResponse.Body as Readable)
     ); // turn to readable string
 
-    const packageKey = `${packageId}/${metadata.Version}/package.zip`; // fetch package content
+    const packageKey = `${packageId}/${metadata.Version.VersionNumber}/package.zip`; // fetch package content
     const packageResponse = await s3Client.send(
       new S3.GetObjectCommand({
         Bucket: bucketName,
@@ -527,7 +534,6 @@ app.post("/package", async (req, res) => {
 // (Get ratings for this package.)
 // app.get("/package/:id/rate", (req, res) => {});
 
-// TODO: implement /package/{id}/cost
 // /package/{id}/cost endpoint
 // (Get the cost of this package.)
 app.get("/package/:id/cost", async (req, res) => {
@@ -646,11 +652,158 @@ app.get("/package/:id/cost", async (req, res) => {
 //  endpoint
 // (Create an access token.)
 // (NON-BASELINE)
-// app.put("/authenticate", (req, res) => {});
+app.put("/authenticate", async (req, res) => {
+  try {
+    const body: AuthenticationRequest = req.body;
 
-// TODO: implement /package/byRegEx
+    // Validate request body
+    if (
+      !body ||
+      !body.User ||
+      !body.Secret ||
+      !body.User.name ||
+      !body.Secret.password
+    ) {
+      return res
+        .status(400)
+        .send(
+          "There is missing field(s) in the AuthenticationRequest or it is formed improperly."
+        );
+    }
+
+    const { name } = body.User;
+    const { password } = body.Secret;
+
+    // Read the users file
+    const userFileData = await fs.readFile(USERS_FILE, "utf-8");
+    const users = userFileData
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line)
+      .map((line) => {
+        const [storedName, storedPassword, permLevel] = line.split(",");
+        return {
+          name: storedName,
+          password: storedPassword,
+          perm_level: parseInt(permLevel, 10),
+        };
+      }) as User[];
+
+    // Check user credentials
+    const user = users.find((u) => u.name === name && u.password === password);
+
+    if (!user) {
+      return res.status(401).send("The user or password is invalid.");
+    }
+
+    // Generate JWT token
+    const tokenPayload = {
+      name: user.name,
+      perm_level: user.perm_level,
+    };
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
+
+    // Return the token
+    const response: AuthenticationToken = { token: `bearer ${token}` };
+    return res.status(200).json(response);
+  } catch (err) {
+    console.error("Error handling /authenticate request:", err);
+    return res.status(501).send("This system does not support authentication.");
+  }
+});
+
 // (Get any packages fitting the regular expression.)
-// app.post("/package/byRegEx", (req, res) => {});
+app.post("/package/byRegEx", async (req, res) => {
+  try {
+    const authToken = req.header("X-Authorization");
+    const validToken = process.env.AUTH_TOKEN;
+    const bucketName = process.env.S3_BUCKET;
+
+    if (!authToken) {
+      return res
+        .status(403)
+        .send("Authentication failed due to missing AuthenticationToken.");
+    }
+
+    if (authToken !== validToken) {
+      return res
+        .status(401)
+        .send("You do not have permission to access this registry.");
+    }
+
+    const { RegEx } = req.body;
+
+    // Validate the request body
+    if (!RegEx || typeof RegEx !== "string") {
+      return res
+        .status(400)
+        .send("The request is missing a valid RegEx field.");
+    }
+
+    // Compile the regex
+    let regex;
+    try {
+      regex = new RegExp(RegEx);
+    } catch (error) {
+      return res.status(400).send("The provided RegEx is invalid.");
+    }
+
+    // List objects in the bucket
+    const listCommand = new S3.ListObjectsV2Command({ Bucket: bucketName });
+    const listResponse = await s3Client.send(listCommand);
+
+    if (!listResponse.Contents || listResponse.Contents.length === 0) {
+      return res.status(404).send("No packages available in the registry.");
+    }
+
+    // Filter metadata files
+    const metadataKeys = listResponse.Contents.filter((object) =>
+      object.Key.endsWith("metadata.json")
+    ).map((object) => object.Key);
+
+    if (metadataKeys.length === 0) {
+      return res.status(404).send("No packages available for search.");
+    }
+
+    // Search using RegEx
+    const matchedPackages = [];
+    for (const key of metadataKeys) {
+      try {
+        const metadataResponse = await s3Client.send(
+          new S3.GetObjectCommand({ Bucket: bucketName, Key: key })
+        );
+        const metadataBody = await metadataResponse.Body.transformToString();
+        const metadata = JSON.parse(metadataBody);
+
+        // Check if package matches the RegEx
+        if (
+          regex.test(metadata.Name) ||
+          (metadata.Description && regex.test(metadata.Description))
+        ) {
+          matchedPackages.push({
+            Name: metadata.Name,
+            Version: metadata.Version,
+            ID: metadata.ID,
+          });
+        }
+      } catch (err) {
+        console.error(`Error retrieving or parsing metadata for ${key}:`, err);
+        // Continue to the next package
+      }
+    }
+
+    if (matchedPackages.length === 0) {
+      return res.status(404).send("No package found under this regex.");
+    }
+
+    // Return the matched packages
+    res.status(200).json(matchedPackages);
+  } catch (error) {
+    console.error("Error processing /package/byRegEx request:", error);
+    res.status(500).send("An error occurred while searching packages.");
+  }
+});
 
 // (Get the list of tracks the team is implementing.)
 app.get("/tracks", (req, res) => {
