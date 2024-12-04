@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { info, debug, silent } from "./logger.js";
 
-async function processUrl(url: string) {
+export async function processUrl(url: string) {
   try {
     const startTime = Date.now();
     const score = await ms.netScore(url);
@@ -67,13 +67,12 @@ export async function main(testFile?: string) {
   } catch (err) {
     await info(`Error reading file: ${filename}. Error: ${err.message}`);
     process.exit(1);
-  } finally {
-    if (testFile) {
-      return ndjsonOutput;
-    } else {
-      await info("Program ended");
-      process.exit(0);
-    }
+  }
+  if (testFile) {
+    return ndjsonOutput;
+  } else {
+    await info("Program ended");
+    process.exit(0);
   }
 }
 

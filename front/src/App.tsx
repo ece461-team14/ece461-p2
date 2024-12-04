@@ -157,13 +157,29 @@ const App: React.FC = () => {
   // Remove file from the filesToUpload list
   const handleRemoveFile = (file: File) => {
     setFilesToUpload((prev) => prev.filter((f) => f !== file));
+
   };
 
+  
+  // Type guard to ensure the object matches the expected PackageCost shape
+  const isValidPackageCost = (data: unknown): data is PackageCost => {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'totalCost' in data &&
+      typeof (data as any).totalCost === 'number' &&
+      ('standaloneCost' in data
+        ? typeof (data as any).standaloneCost === 'number' || (data as any).standaloneCost === undefined
+        : true)
+    );
+  };
+  //END OF COST FUNCTION
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="App-title">JJAB</h1>
+\        <h1 className="App-title">JJAB</h1>
         <p className="App-subtitle">A trustworthy package registry</p>
+
       </header>
 
       <div className="container">

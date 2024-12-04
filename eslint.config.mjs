@@ -18,5 +18,5 @@ export default {
     ...pluginJs.configs.recommended.rules,
     ...tsPlugin.configs.recommended.rules,
   },
-  ignores: ["**/dist/", "client/build/"] // Ignore both server and client build directories
+  ignores: ["**/dist/**", "client/build/", "**/build/**", "**/spec/**"], // Ignore both server and client build directories
 };

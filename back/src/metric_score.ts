@@ -1,5 +1,5 @@
 import { info, debug, silent } from "./logger.js";
-import { GitHubFile } from "./types/GitHubFile.js"
+import { GitHubFile } from "./types/GitHubFile.js";
 import { File } from "buffer";
 
 // Function to calculate score and latency for each metric
@@ -86,28 +86,35 @@ export async function netScore(url: string): Promise<any> {
   }
 
   // Calculate all metrics in parallel
-  const [BusFactor, Correctness, RampUp, ResponsiveMaintainer, License, Dependency, Review] =
-    await Promise.all([
-      measureLatency(() => busFactorScore(count), "BusFactor"), // Bus Factor Score
-      measureLatency(() => correctnessScore(data.issues), "Correctness"), // Correctness Score
-      measureLatency(() => rampUpScore(url, files), "RampUp"), // Ramp Up Score
-      measureLatency(
-        () => responsivenessScore(openIssues, closedIssues),
-        "ResponsiveMaintainer"
-      ), // Responsiveness Score
-      measureLatency(() => licenseScore(data), "License"), // License Score
-      measureLatency(() => dependencyScore(files), "Dependency"), // Dependency Score
-      measureLatency(() => reviewScore(url), "Review"), // Review Score
-    ]);
+  const [
+    BusFactor,
+    Correctness,
+    RampUp,
+    ResponsiveMaintainer,
+    License,
+    Dependency,
+    Review,
+  ] = await Promise.all([
+    measureLatency(() => busFactorScore(count), "BusFactor"), // Bus Factor Score
+    measureLatency(() => correctnessScore(data.issues), "Correctness"), // Correctness Score
+    measureLatency(() => rampUpScore(url, files), "RampUp"), // Ramp Up Score
+    measureLatency(
+      () => responsivenessScore(openIssues, closedIssues),
+      "ResponsiveMaintainer"
+    ), // Responsiveness Score
+    measureLatency(() => licenseScore(data), "License"), // License Score
+    measureLatency(() => dependencyScore(files), "Dependency"), // Dependency Score
+    measureLatency(() => reviewScore(url), "Review"), // Review Score
+  ]);
 
   // store weights
-  let w_b: number = 0.2;
-  let w_c: number = 0.25;
-  let w_r: number = 0.15;
-  let w_rm: number = 0.3;
-  let w_l: number = 0.1;
-  let weight_dependency: number = 0.1;
-  let weight_review: number = 0.1;
+  let w_b = 0.2;
+  let w_c = 0.25;
+  let w_r = 0.15;
+  let w_rm = 0.3;
+  let w_l = 0.1;
+  let weight_dependency = 0.1;
+  let weight_review = 0.1;
 
   // calculate score
   let netScore: number =
@@ -186,7 +193,10 @@ export async function correctnessScore(IssueCount: number): Promise<number> {
 
 // analyzes presence and completness of relevant documentation
 // for new developers and return M_r(r) as specified in project plan
-export async function rampUpScore(repoUrl: string, files: File[]): Promise<number> {
+export async function rampUpScore(
+  repoUrl: string,
+  files: File[]
+): Promise<number> {
   let documentationScore = 0;
   let organizationScore = 0;
   let setupScore = 0;
@@ -249,11 +259,7 @@ export async function rampUpScore(repoUrl: string, files: File[]): Promise<numbe
 
   // Total score calculation
   const totalScore =
-    documentationScore +
-    organizationScore +
-    setupScore +
-    testScore +
-    ciCdScore;
+    documentationScore + organizationScore + setupScore + testScore + ciCdScore;
   const maxPossibleScore = 8;
   const normalizedScore = totalScore / maxPossibleScore; // normalize
 
@@ -295,17 +301,20 @@ export async function licenseScore(data: any): Promise<number> {
 
 /**
  * DependencyScore: Calculate the fraction of dependencies pinned to a major+minor version
- * 
+ *
  * @param files - Array of files from the repository
  * @returns number - Fraction of dependencies with major+minor version pinning
  */
 async function dependencyScore(files: File[]): Promise<number> {
   // Find package.json in the files array
   try {
-    const packageJsonFile: GitHubFile = files.find(file => file.name === 'package.json') as unknown as GitHubFile;
+    const packageJsonFile: GitHubFile = files.find(
+      (file) => file.name === "package.json"
+    ) as unknown as GitHubFile;
 
-    if (!packageJsonFile) { // NOTE: May need to return 1.0 b/c there are no dependencies technically, spec unclear
-      console.log('NO PACKAGE.JSON');
+    if (!packageJsonFile) {
+      // NOTE: May need to return 1.0 b/c there are no dependencies technically, spec unclear
+      console.log("NO PACKAGE.JSON");
       await info("Error checking package.json: file does not exist");
       throw new Error("Could not read package.json");
     }
@@ -323,10 +332,12 @@ async function dependencyScore(files: File[]): Promise<number> {
     if (Object.keys(dependencies).length === 0) return 1.0; // No dependencies, score is 1.0
 
     // Check if each dependency is pinned to a major+minor version
-    const pinnedDependencies = Object.values(dependencies).filter((version: string) => {
-      const versionParts = version.match(/^(\d+)\.(\d+)\.(x|\d+)$/); // Matches major.minor.x or major.minor.patch
-      return versionParts && versionParts[1] && versionParts[2];
-    });
+    const pinnedDependencies = Object.values(dependencies).filter(
+      (version: string) => {
+        const versionParts = version.match(/^(\d+)\.(\d+)\.(x|\d+)$/); // Matches major.minor.x or major.minor.patch
+        return versionParts && versionParts[1] && versionParts[2];
+      }
+    );
 
     return pinnedDependencies.length / Object.keys(dependencies).length;
   } catch (error) {
@@ -338,59 +349,55 @@ async function dependencyScore(files: File[]): Promise<number> {
 
 /**
  * ReviewScore: Calculate the fraction of project code introduced through reviewed pull requests
- * 
+ *
  * @param owner - Owner of the repository
  * @param repo - Repository name
  * @returns Promise<number> - Fraction of code introduced with code review
  */
 async function reviewScore(repoUrl: string): Promise<number> {
-  try {
-    // Fetch the last 100 closed pull requests (modify as needed)
-    // Build query URLs
-    const repoPath = repoUrl.split("github.com/")[1];
-    if (!repoPath) {
-      throw new Error("Invalid GitHub URL");
-    }
+  // Fetch the last 100 closed pull requests (modify as needed)
+  // Build query URLs
+  const repoPath = repoUrl.split("github.com/")[1];
+  if (!repoPath) {
+    throw new Error("Invalid GitHub URL");
+  }
 
-    // Ensure the repository path is in the format 'owner/repo'
-    const [owner, repo] = repoPath.split("/").map((part) => part.trim());
-    if (!owner || !repo) {
-      throw new Error("Invalid GitHub repository path");
-    }
+  // Ensure the repository path is in the format 'owner/repo'
+  const [owner, repo] = repoPath.split("/").map((part) => part.trim());
+  if (!owner || !repo) {
+    throw new Error("Invalid GitHub repository path");
+  }
 
-    // Construct the GitHub API URLs for opened and close and still open issues
-    const closedPRUrl = `https://api.github.com/repos/${owner}/${repo}/pulls?state=closed&per_page=100`;
-    const prResponse = await fetch(closedPRUrl, {
+  // Construct the GitHub API URLs for opened and close and still open issues
+  const closedPRUrl = `https://api.github.com/repos/${owner}/${repo}/pulls?state=closed&per_page=100`;
+  const prResponse = await fetch(closedPRUrl, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+    },
+  });
+
+  const pulls = await prResponse.json();
+
+  if (pulls.length === 0) return 1.0; // No pull requests, assume all code is introduced with review
+
+  let reviewedCount = 0;
+
+  // Check if each PR has at least one review
+  for (const pull of pulls) {
+    const reviewsUrl = `https://api.github.com/repos/${owner}/${repo}/pulls/${pull.number}/reviews`;
+    const reviewsResponse = await fetch(reviewsUrl, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
     });
 
-    const pulls = await prResponse.json();
+    const reviews = await reviewsResponse.json();
 
-    if (pulls.length === 0) return 1.0; // No pull requests, assume all code is introduced with review
-
-    let reviewedCount = 0;
-
-    // Check if each PR has at least one review
-    for (const pull of pulls) {
-      const reviewsUrl = `https://api.github.com/repos/${owner}/${repo}/pulls/${pull.number}/reviews`;
-      const reviewsResponse = await fetch(reviewsUrl, {
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        },
-      });
-
-      const reviews = await reviewsResponse.json();
-
-      // If there is at least one review, consider this PR as reviewed
-      if (reviews.length > 0) reviewedCount++;
-    }
-
-    return reviewedCount / pulls.length;
-  } catch (error) {
-    throw error; // Re-throw the error to be handled by the caller
+    // If there is at least one review, consider this PR as reviewed
+    if (reviews.length > 0) reviewedCount++;
   }
+
+  return reviewedCount / pulls.length;
 }
 
 // Define a function to fetch data from the GitHub API
@@ -412,40 +419,35 @@ export async function fetchGitHubData(url: string) {
 
   if (!githubToken) {
     throw new Error("GITHUB_TOKEN is not set in the environment");
-    process.exit(1);
   }
 
   // Construct the GitHub API URL
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `token ${githubToken}`,
-      },
-    });
+  const response = await fetch(apiUrl, {
+    headers: {
+      Authorization: `token ${githubToken}`,
+    },
+  });
 
-    // Check if the response is OK (status code 200-299)
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.statusText}`);
-    }
-
-    // Parse the JSON response
-    const data = await response.json();
-
-    // Extract relevant information if needed
-    const result = {
-      stars: data.stargazers_count,
-      forks: data.forks_count,
-      issues: data.open_issues_count,
-      license: data.license ? data.license.name : "No license",
-      updated_at: data.updated_at,
-      contributors_count: data.contributors_url,
-    };
-
-    return result;
-  } catch (error) {
-    throw error; // Re-throw the error to be handled by the caller
+  // Check if the response is OK (status code 200-299)
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.statusText}`);
   }
+
+  // Parse the JSON response
+  const data = await response.json();
+
+  // Extract relevant information if needed
+  const result = {
+    stars: data.stargazers_count,
+    forks: data.forks_count,
+    issues: data.open_issues_count,
+    license: data.license ? data.license.name : "No license",
+    updated_at: data.updated_at,
+    contributors_count: data.contributors_url,
+  };
+
+  return result;
 }
 
 // Define function to get issues data from GitHub URL (last 3 months)
@@ -470,25 +472,21 @@ export async function fetchIssues(url: string) {
   const openIssuesURL = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&since=${lastMonthDate}`;
   const closedIssuesURL = `https://api.github.com/repos/${owner}/${repo}/issues?state=closed&since=${lastMonthDate}`;
 
-  try {
-    const openResponse = await fetch(openIssuesURL, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      },
-    });
-    const closedResponse = await fetch(closedIssuesURL, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      },
-    });
+  const openResponse = await fetch(openIssuesURL, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+    },
+  });
+  const closedResponse = await fetch(closedIssuesURL, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+    },
+  });
 
-    const openIssues = await openResponse.json();
-    const closedIssues = await closedResponse.json();
+  const openIssues = await openResponse.json();
+  const closedIssues = await closedResponse.json();
 
-    return [openIssues, closedIssues];
-  } catch (error) {
-    throw error; // Re-throw the error to be handled by the caller
-  }
+  return [openIssues, closedIssues];
 }
 
 // function for getting the number of contributors from a GitHub repo
@@ -496,21 +494,16 @@ export async function fetchCollaboratorsCount(url: string): Promise<any[]> {
   if (!url || !url.startsWith("https://api.github.com/repos/")) {
     throw new Error("Invalid contributors count URL");
   }
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.statusText}`);
-    }
-    const contributors = await response.json();
-    return contributors;
-  } catch (error) {
-    throw error; // Re-throw the error to be handled by the caller
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.statusText}`);
   }
+  const contributors = await response.json();
+  return contributors;
 }
 
 // Fetch repo contents
@@ -520,19 +513,14 @@ export async function fetchRepoContents(url: string): Promise<File[]> {
 
   const [owner, repo] = repoPath.split("/");
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.statusText}`);
-    }
-    const files: File[] = await response.json();
-    return files;
-  } catch (error) {
-    throw error;
+  const response = await fetch(apiUrl, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.statusText}`);
   }
+  const files: File[] = await response.json();
+  return files;
 }

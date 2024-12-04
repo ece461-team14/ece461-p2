@@ -1,0 +1,65 @@
+{
+	"info": {
+		"_postman_id": "3f79ba64-94d8-4f45-b310-0593888c77f0",
+		"name": "/tracks",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39859783",
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-3f79ba64-94d8-4f45-b310-0593888c77f0?action=share&source=collection_link&creator=39859783"
+	},
+	"item": [
+		{
+			"name": "tracks_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 200\r",
+							"pm.test(\"Response Code should be 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Run validations on response headers like Content-Type\r",
+							"pm.test(\"Content-Type should be JSON\", function () {\r",
+							"    pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/json; charset=utf-8');\r",
+							"});\r",
+							"\r",
+							"const json = pm.response.json();\r",
+							"\r",
+							"// The response body, including individual attributes can be evaluated for correctness\r",
+							"pm.test(\"`args` should contain the correct query params\", function () {\r",
+							"    pm.expect(json.tracks).to.be.toString('Access control track');\r",
+							"});\r",
+							"\r",
+							"// Non-trivial data types like Dates can also be tested against\r",
+							"pm.test(\"Date in the header should be valid\", function () {\r",
+							"    const parsedDate = new Date(pm.response.headers.get('Date'));\r",
+							"    pm.expect(parsedDate).to.be.a('date');\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/tracks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"tracks"
+					]
+				},
+				"description": "The tests in the request validate the response code and the data returned in the response is the same as the one being sent."
+			},
+			"response": []
+		}
+	]
+}

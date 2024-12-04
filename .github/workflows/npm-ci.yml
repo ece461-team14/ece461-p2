@@ -1,31 +1,95 @@
-# name: Run testing pipeline
+name: Run testing pipeline
 
-# on:
-#   push:
-#     branches:
-#       - "**"
+on:
+  push:
+    branches:
+      - "**"
 
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-#       - name: Set up Node.js
-#         uses: actions/setup-node@v2
-#         with:
-#           node-version: "20"
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
 
-#       - name: Install dependencies
-#         run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Run testing script
-#         env:
-#           LOG_LEVEL: 3
-#           LOG_FILE: "log.log"
-#           GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
-#         run: |
-#           ./run test
-#           cat log.log
+  # test_app:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+
+  #   steps:
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Test app:
+  #       env:
+  #         LOG_LEVEL: 3
+  #         LOG_FILE: "log.log"
+  #         GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
+  #       run: |
+  #         ./run test
+  #         cat log.log
+
+  test_api:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start application
+        env:
+          LOG_LEVEL: 3
+          LOG_FILE: "log.log"
+          GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AUTH_TOKEN: "ECE461"
+        run: |
+          npm run build:back
+          npm run start:back &
+
+      - name: Wait for Application to Start
+        run: |
+          for i in {1..30}; do
+            if curl --fail http://localhost:8080; then
+              echo "Application started";
+              exit 0;
+            fi;
+            sleep 3;
+          done;
+          echo "Application did not start in time";
+          exit 1;
+
+      - name: Run Newman Tests
+        run: |
+          cd api_tests/
+          for collection in *.postman_collection.json; do
+            echo "Running Newman tests for $collection";
+            newman run "$collection" --reporters cli -e dev-bucket.postman_environment.json --export-environment dev-bucket.postman_environment.json || echo "FAILED";
+          done
+
+      - name: Stop Application
+        run: |
+          pkill -f "node" || true
