@@ -1,85 +1,35 @@
-import * as ms from "./metric_score.js";
-import * as fs from "fs/promises";
-import * as path from "path";
-import { info, debug, silent } from "./logger.js";
+import express from "express";
+import cors from "cors";
+import { postPackages } from "./endpoints/postPackages.js";
+import { deleteReset } from "./endpoints/deleteReset.js";
+import { getPackageID } from "./endpoints/getPackageID.js";
+import { postPackageID } from "./endpoints/postPackageID.js";
+import { postPackage } from "./endpoints/postPackage.js";
+import { getPackageIDRate } from "./endpoints/getPackageIDRate.js";
+import { getPackageIDCost } from "./endpoints/getPackageIDCost.js";
+import { putAuthenticate } from "./endpoints/putAuthenticate.js";
+import { postPackageByRegEx } from "./endpoints/postPackageByRegEx.js";
+import { getTracks } from "./endpoints/getTracks.js";
 
-export async function processUrl(url: string) {
-  try {
-    const startTime = Date.now();
-    const score = await ms.netScore(url);
-    const netScoreLatency = Date.now() - startTime; // overall Netscore Latency
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-    await info(`Processed URL: ${url}, Score: ${score}`);
-    let ret = {
-      URL: url,
-      NetScore: score.NetScore,
-      RampUp: score.RampUp,
-      Correctness: score.Correctness,
-      BusFactor: score.BusFactor,
-      ResponsiveMaintainer: score.ResponsiveMaintainer,
-      License: score.License,
-      Dependency: score.Dependency,
-      Review: score.Review,
-      NetScore_Latency: netScoreLatency,
-      RampUp_Latency: score.RampUp_Latency,
-      Correctness_Latency: score.Correctness_Latency,
-      BusFactor_Latency: score.BusFactor_Latency,
-      ResponsiveMaintainer_Latency: score.ResponsiveMaintainer_Latency,
-      License_Latency: score.License_Latency,
-      Dependency_Latency: score.License_Latency,
-      Review_Latency: score.License_Latency,
-    };
-    return ret;
-  } catch (err) {
-    await info(`Error processing ${url}: ${err.message}`);
-    return { URL: url, NetScore: -1 };
-  }
-}
+// Endpoint for testing connectivity
+// (probably remove/replace for final deliverable)
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
-export async function main(testFile?: string) {
-  await info("Program started");
-  // check if filename provided
-  if (process.argv.length < 3 && !testFile) {
-    await info("Usage: npm start <filename>");
-    process.exit(1);
-  }
+app.post("/packages", postPackages);
+app.delete("/reset", deleteReset);
+app.get("/package/:id", getPackageID);
+app.post("/package/:id", postPackageID);
+app.post("package", postPackage);
+app.get("/package/:id/rate", getPackageIDRate);
+app.get("/package/:id/cost", getPackageIDCost);
+app.put("/authenticate", putAuthenticate);
+app.post("/package/byRegEx", postPackageByRegEx);
+app.get("/tracks", getTracks);
 
-  const filename = testFile ? testFile : process.argv[2];
-  let ndjsonOutput;
-
-  try {
-    // read file content
-    const filePath = path.resolve(filename);
-    const fileContent = await fs.readFile(filePath, "utf-8");
-
-    // split file content by newline and filter empty lines
-    const urls = fileContent.split("\n").filter((line) => line.trim() !== "");
-    await info(`Processing ${urls.length} URLs from file: ${filename}`);
-
-    // Process all URLs in parallel
-    const results = await Promise.all(urls.map((url) => processUrl(url)));
-
-    // Prep NDJSON output
-    ndjsonOutput = results.map((result) => JSON.stringify(result)).join("\n");
-
-    // print output to console
-    console.log(ndjsonOutput);
-  } catch (err) {
-    await info(`Error reading file: ${filename}. Error: ${err.message}`);
-    process.exit(1);
-  }
-  if (testFile) {
-    return ndjsonOutput;
-  } else {
-    await info("Program ended");
-    process.exit(0);
-  }
-}
-
-// Only call main if this file is being run directly outside of Jasmine
-if (
-  !process.argv[1].endsWith("jasmine.js") &&
-  !process.argv[1].endsWith("jasmine")
-) {
-  main();
-}
+export default app;

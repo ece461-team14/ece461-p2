@@ -1,5 +1,5 @@
 import { info, debug, silent } from "./logger.js";
-import { GitHubFile } from "./types/GitHubFile.js";
+import { GitHubFile } from "../types/GitHubFile.js";
 import { File } from "buffer";
 
 // Function to calculate score and latency for each metric

@@ -1,4 +1,4 @@
-import { info, debug, silent } from "../logger.js";
+import { info, debug, silent } from "./logger.js";
 
 /**
  * Given a package URL, returns contents as Base64-encoded string
@@ -19,7 +19,9 @@ export async function getPackage(url: string): Promise<string> {
 
     // Check if the response is successful
     if (!response.ok) {
-      await info(`Error processing ${url}: Invalid Response ${response.statusText}`);
+      await info(
+        `Error processing ${url}: Invalid Response ${response.statusText}`
+      );
       throw new Error(`Failed to fetch package: ${response.statusText}`);
     }
 
@@ -28,7 +30,7 @@ export async function getPackage(url: string): Promise<string> {
     const buffer = Buffer.from(data);
 
     // Convert the Buffer to a Base64-encoded string
-    const base64String = buffer.toString('base64');
+    const base64String = buffer.toString("base64");
 
     return base64String;
   } catch (err) {
