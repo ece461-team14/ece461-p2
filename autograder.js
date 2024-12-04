@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const group = 14;
-const ghToken = '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';
+const ghToken = ''; // Enter your github token here!!
 const baseUrl = 'http://dl-berlin.ecn.purdue.edu:8000';
 
 function printReadableScore(data) {
