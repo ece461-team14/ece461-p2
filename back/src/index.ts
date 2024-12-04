@@ -128,7 +128,7 @@ app.post("/packages", async (req, res) => {
     const response = paginatedPackages.map((pkg) => ({
       Name: pkg.Name,
       ID: pkg.ID,
-      Version: pkg.Version,
+      Version: pkg.Version.VersionNumber,
     }));
 
     res.status(200).json(response);
@@ -520,6 +520,8 @@ app.post("/package", async (req, res) => {
       metadata,
       data: {
         JSProgram,
+        ...(Content !== undefined && { Content }),
+        ...(URL !== undefined && { URL }),
       },
     });
   } catch (error) {
