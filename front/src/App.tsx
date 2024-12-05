@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
+import Login from "./Login";
 
-const apiUrl = "http://34.199.154.104:8080"; // Replace with your backend URL
+const apiUrl = "http://34.199.154.104:8080";
 
 interface Package {
   Name: string;
@@ -12,6 +13,7 @@ interface Package {
 }
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [files, setFiles] = useState<Package[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +54,14 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchFiles();
-  }, [fetchFiles]);
+    if (isAuthenticated) {
+      fetchFiles();
+    }
+  }, [fetchFiles, isAuthenticated]);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true); // Mark user as logged in
+  };
 
   const handleUpload = async () => {
     try {
@@ -162,86 +170,85 @@ const App: React.FC = () => {
   
   return (
     <div className="App">
-      <header className="App-header">
-\        <h1 className="App-title">JJAB</h1>
-        <p className="App-subtitle">A trustworthy package registry</p>
+      {!isAuthenticated ? (
+        <Login onLogin={handleLogin} /> // Show Login if not authenticated
+      ) : (
+        <>
+          <header className="App-header">
+            <h1 className="App-title">JJAB</h1>
+            <p className="App-subtitle">A trustworthy package registry</p>
+          </header>
 
-      </header>
+          <div className="container">
+            <section className="left-section">
+              <h2>Upload Package</h2>
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Enter URL for ZIP"
+                disabled={loading}
+                className="url-input"
+              />
+              <button onClick={handleUrlSubmit} disabled={loading}>
+                Fetch ZIP from URL
+              </button>
 
-      <div className="container">
-        {/* Left Section */}
-        <section className="left-section">
-          <h2>Upload Package</h2>
+              <div
+                className="file-drop-area"
+                onDrop={handleFileDrop}
+                onDragOver={handleDragOver}
+                onClick={handleDropAreaClick}
+              >
+                <p>Drag and drop a file here, or click to select</p>
+              </div>
 
-          {/* URL Input */}
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter URL for ZIP"
-            disabled={loading}
-            className="url-input"
-          />
-          <button onClick={handleUrlSubmit} disabled={loading}>
-            Fetch ZIP from URL
-          </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                style={{ display: "none" }}
+              />
 
-          {/* File Drop Area (Click or Drop file) */}
-          <div
-            className="file-drop-area"
-            onDrop={handleFileDrop}
-            onDragOver={handleDragOver}
-            onClick={handleDropAreaClick} // Trigger file selection on click
-          >
-            <p>Drag and drop a file here, or click to select</p>
-          </div>
+              {filesToUpload.length > 0 && (
+                <div className="uploaded-files-box">
+                  <h3>Files to Upload</h3>
+                  <ul>
+                    {filesToUpload.map((file, index) => (
+                      <li key={index}>
+                        {file.name}{" "}
+                        <button onClick={() => handleRemoveFile(file)}>
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button onClick={handleUpload} disabled={loading}>
+                    Upload Packages
+                  </button>
+                </div>
+              )}
+            </section>
 
-          {/* Hidden file input for clicking */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            style={{ display: "none" }} // Hide file input, triggered via the drop area
-          />
-
-          {/* Files to upload display */}
-          {filesToUpload.length > 0 && (
-            <div className="uploaded-files-box">
-              <h3>Files to Upload</h3>
+            <section className="right-section">
+              <h2>Available Packages</h2>
+              {loading && <p>Loading...</p>}
               <ul>
-                {filesToUpload.map((file, index) => (
-                  <li key={index}>
-                    {file.name}{" "}
-                    <button onClick={() => handleRemoveFile(file)}>Remove</button>
+                {files.map((file) => (
+                  <li key={file.ID}>
+                    {file.Name} - Version: {file.Version.VersionNumber}
                   </li>
                 ))}
               </ul>
-              <button onClick={handleUpload} disabled={loading}>
-                Upload Packages
+              <button onClick={fetchFiles} disabled={loading}>
+                Refresh List
               </button>
-            </div>
-          )}
-        </section>
+            </section>
+          </div>
 
-        {/* Right Section */}
-        <section className="right-section">
-          <h2>Available Packages</h2>
-          {loading && <p>Loading...</p>}
-          <ul>
-            {files.map((file) => (
-              <li key={file.ID}>
-                {file.Name} - Version: {file.Version.VersionNumber}
-              </li>
-            ))}
-          </ul>
-
-          <button onClick={fetchFiles} disabled={loading}>
-            Refresh List
-          </button>
-        </section>
-      </div>
-
-      {error && <div className="error">{error}</div>}
+          {error && <div className="error">{error}</div>}
+        </>
+      )}
     </div>
   );
 };

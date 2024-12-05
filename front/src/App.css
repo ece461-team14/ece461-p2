@@ -29,7 +29,7 @@
   gap: 20px;
   width: 100%;
   max-width: 1200px;
-  margin: 100px auto 0; /* Space for the fixed header */
+  margin: 100px auto 0;
   padding: 20px;
   box-sizing: border-box;
 }
@@ -39,6 +39,7 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  opacity: .5;
 }
 
 h2 {
@@ -118,7 +119,7 @@ input[type="file"] {
   cursor: not-allowed;
 }
 
-/* File Drop Area Styling */
+/* file Drop Area Styling */
 .file-drop-area {
   border: 2px solid #61dafb;
   padding: 40px;
@@ -128,7 +129,7 @@ input[type="file"] {
   color: white;
   cursor: pointer;
   text-align: center;
-  min-height: 150px; /* Define a height for the drop area */
+  min-height: 150px;
 }
 
 .file-drop-area p {
@@ -137,7 +138,7 @@ input[type="file"] {
   color: white;
 }
 
-/* Hidden file input (file selection) */
+/* hidden file input (file selection) */
 input[type="file"] {
   display: none;
 }
