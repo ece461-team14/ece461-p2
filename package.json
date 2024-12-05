@@ -18,7 +18,12 @@
         "test:back": "tsc && nyc instrument dist/back/ dist/back/instrumented --exclude=instrumented/** && nyc node --enable-source-maps dist/back/instrumented/src/index.js",
         "start:front": "cd front && npm start",
         "build:front": "cd front && npm run build",
-        "test:front": "cd front && npm run test"
+        "test:front": "cd front && npm run test",
+        "schedule": "node autograder.js schedule",
+        "progress": "node autograder.js progress",
+        "best": "node autograder.js best",
+        "last": "node autograder.js last",
+        "log": "node autograder.js log"
     },
     "keywords": [],
     "author": "",
