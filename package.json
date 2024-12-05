@@ -23,7 +23,8 @@
         "progress": "node autograder.js progress",
         "best": "node autograder.js best",
         "last": "node autograder.js last",
-        "log": "node autograder.js log"
+        "log": "node autograder.js log",
+        "test:selenium": "node src/seleniumTest.js"
     },
     "keywords": [],
     "author": "",
@@ -57,6 +58,7 @@
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "axios": "^1.7.8",
+        "chromedriver": "^131.0.2",
         "commander": "^12.1.0",
         "cors": "^2.8.5",
         "express": "^4.21.1",
@@ -66,6 +68,7 @@
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-scripts": "^5.0.1",
+        "selenium-webdriver": "^4.27.0",
         "web-vitals": "^2.1.4"
     },
     "nyc": {
