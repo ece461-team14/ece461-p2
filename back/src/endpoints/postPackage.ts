@@ -5,7 +5,10 @@ import {
   S3Client,
   HeadObjectCommand,
   PutObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
+import fs from "fs";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -23,152 +26,178 @@ export const postPackage = async (req, res) => {
     }
 
     // Verify the JWT token
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        return res.status(401).send("Authentication failed. Invalid or expired token.");
-      }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = (decoded as jwt.JwtPayload).name;
 
-      // Token is valid, decoded contains the payload (e.g., user info)
-      // console.log("Token is valid. Decoded payload:", decoded);
+    const { Name, Version, JSProgram, Content, URL } = req.body;
 
-      const { Name, Version, JSProgram, Content, URL } = req.body;
+    // Validate the request body
+    if (!Name || !Version || !JSProgram || (!Content && !URL)) {
+      return res.status(400).send("There are missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set).");
+    }
 
-      // Validate the request body
-      if (!Name || !Version || !JSProgram || (!Content && !URL)) {
-        return res.status(400).send("There are missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set).");
-      }
+    // Generate a package ID based on the name and version (using SHA-256 hash for uniqueness)
+    const packageID = crypto.createHash("sha256").update(`${Name}-${Version}`).digest("hex");
 
-      // Generate a package ID based on the name (using SHA-256 hash for uniqueness)
-      const packageID = crypto.createHash("sha256").update(Name).digest("hex");
+    const bucketName = process.env.S3_BUCKET;
+    if (!bucketName) {
+      return res.status(500).send("S3 bucket name is not set.");
+    }
 
-      const bucketName = process.env.S3_BUCKET;
-      if (!bucketName) {
-        return res.status(500).send("S3 bucket name is not set.");
-      }
+    // check if registry.csv exists locally, if not, create one
+    if (!fs.existsSync('./registry.csv')) {
+      fs.writeFileSync('./registry.csv', "name,version,ID,score,cost,timeuploaded,usernameuploaded\n");
+    }
+    let packageExists = false;
 
-      // Check if the package already exists
-      const metadataKey = `${packageID}/metadata.json`;
-      try {
-        await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: metadataKey }));
-        return res.status(409).send("Package already exists.");
-      } catch (err) {
-        if (err.name !== "NotFound") {
-          console.error("Error checking package existence:", err);
-          return res.status(500).send("Error checking package existence.");
+    try {
+      // read file (trim off header row)
+      let registryContent = fs.readFileSync('./registry.csv', "utf8");
+      registryContent = registryContent.replace("name,version,ID,score,cost,timeuploaded,usernameuploaded\n", "");
+      const registryEntries = registryContent.split("\n");
+      
+      // Check if the package already exists in the registry
+      for (let entry of registryEntries) {
+        const [regName, regVersion] = entry.split(",");
+        if (regName === Name && regVersion === Version) {
+          packageExists = true;
+          break;
         }
       }
 
-      // Prepare package metadata
-      const metadata = {
-        Name,
-        ID: packageID,
-        Version: {
-          VersionNumber: Version,
-          UploadedBy: decoded.name, // Use the name from the JWT payload
-          UploadedAt: new Date().toISOString(),
-        },
-      };
+    } catch (err) {
+      if (err.name !== "NotFound") {
+        console.error("Error accessing registry.csv:", err);
+        return res.status(500).send("Error accessing registry.csv.");
+      }
+    }
 
-      // Upload metadata.json
+    if (packageExists) {
+      return res.status(409).send("Package already exists in registry.");
+    }
+
+    // Add the package entry to the registry.csv file
+    const timeUploaded = new Date().toISOString();
+    const newRegistryEntry = `${Name},${Version},${packageID},0,0,${timeUploaded},${username}\n`;
+    fs.appendFileSync('./registry.csv', newRegistryEntry);
+
+    // create metadata object for response
+    const metadata = {
+      Name,
+      Version,
+      ID: packageID,
+      Score: 0,
+      Cost: 0,
+      TimeUploaded: timeUploaded,
+      UsernameUploaded: username,
+    };
+
+    // Upload the package content or ingest from URL
+    const packageKey = `${packageID}`;
+    if (Content) {
+      // Check base64 length before uploading
+      if (!Content || Content.trim().length === 0) {
+        return res.status(400).send("Content is missing or empty.");
+      }
+    
+      const contentBuffer = Buffer.from(Content, "binary");
+      console.log("Buffer length:", contentBuffer.length); // Log buffer size
+    
+      // Check buffer size before uploading
+      if (contentBuffer.length === 0) {
+        return res.status(400).send("The uploaded content is empty or invalid.");
+      }
+    
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
-          Key: metadataKey,
-          Body: JSON.stringify(metadata, null, 2),
-          ContentType: "application/json",
+          Key: packageKey,
+          Body: contentBuffer,
+          ContentType: "application/zip",
         })
       );
-
-      // Upload the package content or ingest from URL
-      const packageKey = `${packageID}/${Version}/package.zip`;
-      if (Content) {
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: bucketName,
-            Key: packageKey,
-            Body: Buffer.from(Content, "base64"),
-            ContentType: "application/zip",
-          })
-        );
-      } else if (URL) {
-        // Download the package from the URL and upload it
-        const isGithub = URL.includes("github.com");
-        const isNPM = URL.includes("npmjs.com");
-
-        if (isGithub) {
-          // Download the package from GitHub
-          const archiveURl = `${URL}/archive/refs/heads/main.zip`;
-          try {
-            const packageData = await axios.get(archiveURl, {
-              responseType: "arraybuffer",
-            });
-            await s3Client.send(
-              new PutObjectCommand({
-                Bucket: bucketName,
-                Key: packageKey,
-                Body: packageData.data,
-                ContentType: "application/zip",
-              })
-            );
-          } catch (err) {
-            console.error("Error downloading package from GitHub:", err);
-            return res.status(500).send("Error downloading package from GitHub.");
-          }
-        } else if (isNPM) {
-          // NPM-specific handling
-          try {
-            const packageName = URL.split("/").pop();
-            const npmRegistryUrl = `https://registry.npmjs.org/${packageName}`;
-
-            // Fetch the package metadata from the NPM registry
-            const npmResponse = await axios.get(npmRegistryUrl);
-            const tarballUrl = npmResponse.data["dist-tags"]?.latest
-              ? npmResponse.data.versions[npmResponse.data["dist-tags"].latest]
-                  .dist.tarball
-              : null;
-
-            if (!tarballUrl) {
-              return res
-                .status(400)
-                .send("Unable to determine tarball URL for the specified NPM package.");
-            }
-
-            // Download the tarball
-            const packageData = await axios.get(tarballUrl, {
-              responseType: "arraybuffer",
-            });
-            await s3Client.send(
-              new PutObjectCommand({
-                Bucket: bucketName,
-                Key: packageKey,
-                Body: packageData.data,
-                ContentType: "application/gzip",
-              })
-            );
-          } catch (err) {
-            console.error("Error downloading or uploading NPM package:", err);
-            return res
-              .status(500)
-              .send("Error downloading or uploading the NPM package.");
-          }
-        } else {
-          return res
-            .status(400)
-            .send("Unsupported URL format. Only GitHub and NPM URLs are supported.");
-        }
+    } else if (URL) {
+      const packageData = await downloadPackageFromURL(URL);
+      if (!packageData || packageData.length === 0) {
+        return res.status(400).send("Downloaded package is empty or invalid.");
       }
+    
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: packageKey,
+          Body: packageData,
+          ContentType: "application/zip",
+        })
+      );
+    }
 
-      // Respond with the package information
-      res.status(201).json({
-        message: "Package uploaded successfully",
-        metadata,
-        data: {
-          JSProgram,
-        },
-      });
+    // Respond with the package information
+    res.status(201).json({
+      message: "Package uploaded successfully",
+      metadata,
     });
   } catch (error) {
     console.error("Error handling /package request:", error);
     res.status(500).send("An error occurred while uploading or ingesting the package.");
   }
 };
+
+async function streamToString(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    stream.on("error", reject);
+  });
+}
+
+async function downloadPackageFromURL(url) {
+  try {
+    // Check if the URL is a GitHub repository URL
+    if (url.includes("github.com")) {
+      // Parse the GitHub URL to get the repository details
+      const githubUrl = new URL(url);
+      const parts = githubUrl.pathname.split("/");
+      const username = parts[1];
+      const repoName = parts[2];
+
+      // Construct the URL for downloading the main branch as a ZIP file
+      const githubZipUrl = `https://github.com/${username}/${repoName}/archive/refs/heads/main.zip`;
+
+      // Fetch the ZIP file from GitHub
+      const response = await axios.get(githubZipUrl, { responseType: "arraybuffer" });
+      return response.data;
+
+    } else if (url.includes("npmjs.org")) {
+      // Parse the npm package name from the URL
+      const npmPackageName = url.split("/").pop();
+
+      // Construct the npm package metadata API URL
+      const npmUrl = `https://registry.npmjs.org/${npmPackageName}/latest`;
+
+      // Fetch the npm package metadata
+      const response = await axios.get(npmUrl);
+
+      if (response.data && response.data.dist && response.data.dist.tarball) {
+        // Get the tarball URL for the latest version of the package
+        const tarballUrl = response.data.dist.tarball;
+
+        // Download the tarball package
+        const packageResponse = await axios.get(tarballUrl, { responseType: "arraybuffer" });
+        return packageResponse.data;
+      } else {
+        console.error("No tarball found for npm package.");
+        return null;
+      }
+
+    } else {
+      console.error("Unsupported URL format.");
+      return null;
+    }
+
+  } catch (error) {
+    console.error("Error downloading package:", error);
+    return null;
+  }
+}
