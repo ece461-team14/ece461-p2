@@ -1,6 +1,7 @@
 import axios from "axios";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { processUrl } from "../utils/phase1_app.js";
 import {
   S3Client,
   HeadObjectCommand,
@@ -11,18 +12,20 @@ import { Readable } from "stream";
 import fs from "fs";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const RATING_THRESHOLD = 0.5;
 
 export const postPackage = async (req, res) => {
   try {
     // Extract token from the Authorization header (Bearer <token>)
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication failed due to missing Authorization header.");
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
     }
 
     const token = authHeader.split(" ")[1]; // Extract token part
     if (!token) {
-      return res.status(403).send("Token format is incorrect. Use 'Bearer <token>'");
+      console.log("Token format is incorrect. Use 'Bearer <token>");
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.'");
     }
 
     // Verify the JWT token
@@ -30,6 +33,13 @@ export const postPackage = async (req, res) => {
     const username = (decoded as jwt.JwtPayload).name;
 
     const { Name, Version, JSProgram, Content, URL } = req.body;
+
+    // Data response object
+    const data = {
+      ...(Content !== undefined && { Content }),
+      ...(URL !== undefined && { URL }),
+      ...(JSProgram !== undefined && { JSProgram })
+    };
 
     // Validate the request body
     if (!Name || !Version || !JSProgram || (!Content && !URL)) {
@@ -76,18 +86,15 @@ export const postPackage = async (req, res) => {
       return res.status(409).send("Package already exists in registry.");
     }
 
-    // Add the package entry to the registry.csv file
     const timeUploaded = new Date().toISOString();
-    const newRegistryEntry = `${Name},${Version},${packageID},0,0,${timeUploaded},${username}\n`;
-    fs.appendFileSync('./registry.csv', newRegistryEntry);
 
     // create metadata object for response
     const metadata = {
       Name,
       Version,
       ID: packageID,
-      Score: 0,
-      Cost: 0,
+      Score: -1,
+      Cost: -1,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
     };
@@ -117,6 +124,20 @@ export const postPackage = async (req, res) => {
         })
       );
     } else if (URL) {
+      try {
+        const rating = await processUrl(URL);
+        console.log("rating: ", rating);
+
+        if (rating.NetScore <= RATING_THRESHOLD) {
+          console.log("Package is not uploaded due to the disqualified rating.");
+          return res.status(424).send("Package is not uploaded due to the disqualified rating.");
+        }
+        metadata.Score = rating.NetScore;
+      } catch (err) {
+        console.error("Error handling /package request:", err);
+        res.status(500).send("The package rating system choked on at least one of the metrics.");
+      }
+
       const packageData = await downloadPackageFromURL(URL);
       if (!packageData || packageData.length === 0) {
         return res.status(400).send("Downloaded package is empty or invalid.");
@@ -132,10 +153,15 @@ export const postPackage = async (req, res) => {
       );
     }
 
+    // Add the package entry to the registry.csv file
+    const newRegistryEntry = `${Name},${Version},${packageID},${metadata.Score},${metadata.Cost},${timeUploaded},${username}\n`;
+    fs.appendFileSync('./registry.csv', newRegistryEntry);
+
     // Respond with the package information
     res.status(201).json({
       message: "Package uploaded successfully",
       metadata,
+      data,
     });
   } catch (error) {
     console.error("Error handling /package request:", error);
