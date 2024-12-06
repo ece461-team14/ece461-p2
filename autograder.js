@@ -1,7 +1,9 @@
 import axios from 'axios';
+import dotenv from "dotenv";
+dotenv.config();
 
 const group = 14;
-const ghToken = ''; // Enter your github token here!!
+const ghToken = process.env.GITHUB_TOKEN;
 const baseUrl = 'http://dl-berlin.ecn.purdue.edu:8000';
 
 function printReadableScore(data) {
