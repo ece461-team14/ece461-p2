@@ -1,7 +1,7 @@
 export const getTracks = (req, res) => {
   try {
-    const tracks = ["Access Control Track"];
-    res.json({ tracks });
+    const plannedTracks = ["Access Control Track"];
+    res.json({ plannedTracks });
   } catch (err) {
     res.status(500).json({
       error:
