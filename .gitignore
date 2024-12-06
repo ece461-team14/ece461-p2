@@ -40,4 +40,8 @@ Thumbs.db
 # Users database
 users.json
 users.csv
-a.txt
+
+# Jackson Testing Files
+a.json
+auth.txt
+test_commands.txt
