@@ -64,8 +64,8 @@ export const putAuthenticate = async (req, res) => {
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
 
     // Return the token
-    const response = { token: `bearer ${token}` };
-    return res.status(200).json(response);
+    //const response = { token: `bearer ${token}` };
+    return res.status(200).send(`\"bearer ${token}\"`);
   } catch (err) {
     console.error("Error handling /authenticate request:", err);
     return res.status(500).send("Internal server error.");
