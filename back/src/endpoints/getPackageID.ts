@@ -1,9 +1,8 @@
-import {
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -11,70 +10,75 @@ export const getPackageID = async (req, res) => {
   try {
     const packageId = req.params.id;
 
-    const authToken = req.header("X-Authorization"); // verify header
-    const validToken = process.env.AUTH_TOKEN; // get the valid auth token from the environment
-    if (!authToken) {
-      // if no auth token
-      return res
-        .status(403)
-        .send("Authentication failed due to missing AuthenticationToken.");
-    }
-    if (authToken !== validToken) {
-      // if auth token invalid
-      return res
-        .status(401)
-        .send("You do not have permission to access this package.");
+    // Extract token from the Authorization header (Bearer <token>)
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
+      return res.status(403).send("Authentication failed due to missing Authorization header.");
     }
 
-    const bucketName = process.env.S3_BUCKET; // if issues with s# bucket
-    if (!bucketName) {
-      return res.status(500).send("S3 bucket name is not set.");
+    const token = authHeader.split(" ")[1]; // Extract token after "Bearer "
+    if (!token) {
+      return res.status(403).send("Token format is incorrect. Use 'Bearer <token>'");
     }
 
-    const metadataKey = `${packageId}/metadata.json`; // metadata key
-
-    // check package existence using package id
-    try {
-      await s3Client.send(
-        new HeadObjectCommand({ Bucket: bucketName, Key: metadataKey })
-      );
-    } catch (err) {
-      if (err.name === "NotFound") {
-        return res.status(404).send("Package not found.");
-      } else {
-        console.error("Error checking package existence:", err);
-        return res.status(500).send("Error retrieving package metadata.");
+    // Verify the JWT token
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        return res.status(401).send("Authentication failed. Invalid or expired token.");
       }
-    }
 
-    const metadataResponse = await s3Client.send(
-      // fetch metadata
-      new GetObjectCommand({
-        Bucket: bucketName,
-        Key: metadataKey,
-      })
-    );
+      // Token is valid, decoded contains the payload
+      // console.log("Token is valid. Decoded payload:", decoded);
 
-    const metadata = JSON.parse(
-      await streamToString(metadataResponse.Body as Readable)
-    ); // turn to readable string
+      // Proceed with the request handling (retrieving package)
+      const bucketName = process.env.S3_BUCKET; // Get bucket name from environment
+      if (!bucketName) {
+        return res.status(500).send("S3 bucket name is not set.");
+      }
 
-    const packageKey = `${packageId}/${metadata.Version.VersionNumber}/package.zip`; // fetch package content
-    const packageResponse = await s3Client.send(
-      new GetObjectCommand({
-        Bucket: bucketName,
-        Key: packageKey,
-      })
-    );
+      const metadataKey = `${packageId}/metadata.json`; // metadata key
 
-    const content = await streamToString(packageResponse.Body as Readable); // make package content readable in the same way as the metadata
+      // Check package existence using package ID
+      try {
+        await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: metadataKey }));
+      } catch (err) {
+        if (err.name === "NotFound") {
+          return res.status(404).send("Package not found.");
+        } else {
+          console.error("Error checking package existence:", err);
+          return res.status(500).send("Error retrieving package metadata.");
+        }
+      }
 
-    res.status(200).json({
-      // respond with the data in the Readable format
-      metadata,
-      data: {
-        Content: content, // can modify how content is sent (could send in base64)
-      },
+      // Fetch metadata
+      const metadataResponse = await s3Client.send(
+        new GetObjectCommand({
+          Bucket: bucketName,
+          Key: metadataKey,
+        })
+      );
+
+      const metadata = JSON.parse(await streamToString(metadataResponse.Body as Readable));
+
+      // Get the package content
+      const packageKey = `${packageId}/${metadata.Version.VersionNumber}/package.zip`;
+      const packageResponse = await s3Client.send(
+        new GetObjectCommand({
+          Bucket: bucketName,
+          Key: packageKey,
+        })
+      );
+
+      const content = await streamToString(packageResponse.Body as Readable); 
+
+      // Send response with metadata and content
+      res.status(200).json({
+        metadata,
+        data: {
+          // send content in base64 format
+          Content: content,
+        },
+      });
     });
   } catch (error) {
     console.error("Error handling /package/:id request:", error);
@@ -82,7 +86,7 @@ export const getPackageID = async (req, res) => {
   }
 };
 
-// function for converting stream to readable string
+// Helper function for converting stream to string
 async function streamToString(stream: Readable): Promise<string> {
   const chunks: Buffer[] = [];
   for await (let chunk of stream) {

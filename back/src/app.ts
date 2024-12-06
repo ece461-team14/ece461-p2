@@ -25,7 +25,7 @@ app.post("/packages", postPackages);
 app.delete("/reset", deleteReset);
 app.get("/package/:id", getPackageID);
 app.post("/package/:id", postPackageID);
-app.post("package", postPackage);
+app.post("/package", postPackage);
 app.get("/package/:id/rate", getPackageIDRate);
 app.get("/package/:id/cost", getPackageIDCost);
 app.put("/authenticate", putAuthenticate);
