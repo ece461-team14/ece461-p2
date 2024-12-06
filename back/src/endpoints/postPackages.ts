@@ -2,25 +2,34 @@ import { Request, Response } from "express";
 import {
   S3Client,
   ListObjectsV2Command,
-  GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { validateAuthToken } from "../utils/authUtils.js";
+import jwt from "jsonwebtoken";
 import { fetchPackageMetadata } from "../utils/s3Utils.js";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const postPackages = async (req: Request, res: Response) => {
   try {
-    // Validate the auth token
+    // Validate the JWT from the Authorization header
     const authToken = req.header("X-Authorization");
-    if (!validateAuthToken(authToken)) {
+    if (!authToken) {
       return res
         .status(403)
-        .send(
-          "Authentication failed due to invalid or missing AuthenticationToken."
-        );
+        .send("Authentication failed due to missing token.");
     }
 
+    const token = authToken.replace("Bearer ", ""); // Remove the 'Bearer ' prefix
+    
+    let user;
+    try {
+      user = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res
+        .status(403)
+        .send("Authentication failed due to invalid token.");
+    }
+
+    // Parse the request body
     const { body: queries } = req;
     if (!Array.isArray(queries) || queries.some((q) => typeof q !== "object")) {
       return res
@@ -35,7 +44,7 @@ export const postPackages = async (req: Request, res: Response) => {
       return res.status(500).send("S3 bucket name is not set.");
     }
 
-    // List objects in the bucket
+    // List objects in the S3 bucket
     const listCommand = new ListObjectsV2Command({ Bucket: bucketName });
     const listResponse = await s3Client.send(listCommand);
 
@@ -44,7 +53,7 @@ export const postPackages = async (req: Request, res: Response) => {
       return res.status(200).json([]);
     }
 
-    // Fetch metadata
+    // Fetch metadata for all listed objects
     const metadataList = await fetchPackageMetadata(
       listResponse.Contents,
       bucketName,
