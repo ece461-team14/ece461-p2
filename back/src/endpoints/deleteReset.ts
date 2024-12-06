@@ -48,6 +48,6 @@ export const deleteReset = async (req, res) => {
     res.status(200).send("Registry is reset.");
   } catch (error) {
     console.error("Error resetting registry:", error);
-    res.status(500).send("Error resetting registry:", error);
+    res.status(500).send("Error resetting registry: ", error);
   }
 };
