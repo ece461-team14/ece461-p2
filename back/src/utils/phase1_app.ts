@@ -4,6 +4,7 @@ import * as path from "path";
 import { info, debug, silent } from "./logger.js";
 
 export async function processUrl(url: string) {
+  console.log('Processing URL');
   try {
     const startTime = Date.now();
     const score = await ms.netScore(url);
@@ -77,9 +78,9 @@ export async function main(testFile?: string) {
 }
 
 // Only call main if this file is being run directly outside of Jasmine
-if (
-  !process.argv[1].endsWith("jasmine.js") &&
-  !process.argv[1].endsWith("jasmine")
-) {
-  main();
-}
+// if (
+//   !process.argv[1].endsWith("jasmine.js") &&
+//   !process.argv[1].endsWith("jasmine")
+// ) {
+//   main();
+// }
