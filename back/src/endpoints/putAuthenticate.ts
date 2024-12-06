@@ -1,17 +1,13 @@
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import {
-  User,
-  AuthenticationRequest,
-  AuthenticationToken,
-} from "../types/GitHubFile.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const USERS_FILE = "./users.csv";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export const putAuthenticate = async (req, res) => {
   try {
-    // Parse the raw body
     const body = req.body;
 
     // Validate request body
@@ -33,10 +29,6 @@ export const putAuthenticate = async (req, res) => {
     const { name, isAdmin } = body.User;
     const password = body.Secret.password;
 
-    // write password to a.txt
-    await fs.writeFile("a.txt", password);
-    console.log("Password: ", password)
-
     // Read the users file
     const userFileData = await fs.readFile(USERS_FILE, "utf-8");
     const users = userFileData
@@ -57,12 +49,6 @@ export const putAuthenticate = async (req, res) => {
     const user = users.find(
       (u) => u.name === name && u.password === password && u.isAdmin === isAdmin
     );
-
-    const nameValid = users.find((u) => u.name === name);
-    const passwordValid = users.find((u) => u.password === password);
-
-    // print all stored passwords from user:
-    console.log(`Stored passwords: ${users.map(u => u.password)}`);
 
     if (!user) {
       return res.status(401).send("The user or password is invalid.");
