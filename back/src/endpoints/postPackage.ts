@@ -39,12 +39,11 @@ export const postPackage = async (req, res) => {
     let { Name, Version, JSProgram, Content, URL } = req.body;
 
     // Validate the request body
-    if (!Name || !Version || !JSProgram || (!Content && !URL)) {
+    if (!Name || !Version || (!Content && !URL)) {
       debug("Missing field(s) in the PackageData or it is formed improperly.");
       // log the exact missing field(s) for debugging
       debug("Name:" + Name);
       debug("Version:" + Version);
-      debug("JSProgram:" + JSProgram);
       debug("Content:" + Content);
       return res
         .status(400)
