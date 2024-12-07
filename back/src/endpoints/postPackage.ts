@@ -44,7 +44,7 @@ export const postPackage = async (req, res) => {
       // log the exact missing field(s) for debugging
       debug("Name:" + Name);
       debug("Version:" + Version);
-      debug("Content:" + Content);
+      // debug("Content:" + Content);
       return res
         .status(400)
         .send(
