@@ -1,7 +1,14 @@
-import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
+import * as fs from "fs";
 import { Readable } from "stream";
+import { idExists, getObjFromId } from "../utils/idReg.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+// import { get } from "axios";
 dotenv.config();
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
@@ -13,22 +20,25 @@ export const getPackageID = async (req, res) => {
     // Extract token from the Authorization header (Bearer <token>)
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication failed due to missing Authorization header.");
+      return res
+        .status(403)
+        .send("Authentication failed due to missing Authorization header.");
     }
 
     const token = authHeader.split(" ")[1]; // Extract token after "Bearer "
     if (!token) {
-      return res.status(403).send("Token format is incorrect. Use 'Bearer <token>'");
+      return res
+        .status(403)
+        .send("Token format is incorrect. Use 'Bearer <token>'");
     }
 
     // Verify the JWT token
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) {
-        return res.status(401).send("Authentication failed. Invalid or expired token.");
+        return res
+          .status(401)
+          .send("Authentication failed. Invalid or expired token.");
       }
-
-      // Token is valid, decoded contains the payload
-      // console.log("Token is valid. Decoded payload:", decoded);
 
       // Proceed with the request handling (retrieving package)
       const bucketName = process.env.S3_BUCKET; // Get bucket name from environment
@@ -36,32 +46,24 @@ export const getPackageID = async (req, res) => {
         return res.status(500).send("S3 bucket name is not set.");
       }
 
-      const metadataKey = `${packageId}/metadata.json`; // metadata key
+      const regCache = JSON.parse(fs.readFileSync("registry.json", "utf-8"));
 
       // Check package existence using package ID
       try {
-        await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: metadataKey }));
-      } catch (err) {
-        if (err.name === "NotFound") {
+        // check if package ID exists in regCache
+        if (!idExists(regCache, packageId)) {
           return res.status(404).send("Package not found.");
-        } else {
-          console.error("Error checking package existence:", err);
-          return res.status(500).send("Error retrieving package metadata.");
         }
+      } catch (err) {
+        console.error("Error checking package existence:", err);
+        return res.status(500).send("Error retrieving package metadata.");
       }
 
-      // Fetch metadata
-      const metadataResponse = await s3Client.send(
-        new GetObjectCommand({
-          Bucket: bucketName,
-          Key: metadataKey,
-        })
-      );
-
-      const metadata = JSON.parse(await streamToString(metadataResponse.Body as Readable));
+      // get object with given ID
+      const metadata = getObjFromId(regCache, packageId);
 
       // Get the package content
-      const packageKey = `${packageId}/${metadata.Version.VersionNumber}/package.zip`;
+      const packageKey = `${packageId}`;
       const packageResponse = await s3Client.send(
         new GetObjectCommand({
           Bucket: bucketName,
@@ -69,7 +71,7 @@ export const getPackageID = async (req, res) => {
         })
       );
 
-      const content = await streamToString(packageResponse.Body as Readable); 
+      const content = await streamToString(packageResponse.Body as Readable);
 
       // Send response with metadata and content
       res.status(200).json({

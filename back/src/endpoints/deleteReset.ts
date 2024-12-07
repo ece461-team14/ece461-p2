@@ -1,4 +1,8 @@
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -15,7 +19,9 @@ export const deleteReset = async (req, res) => {
 
     const token = authHeader.split(" ")[1];
     if (!token) {
-      return res.status(403).send("Token format is incorrect. Use 'Bearer <token>'");
+      return res
+        .status(403)
+        .send("Token format is incorrect. Use 'Bearer <token>'");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -38,7 +44,9 @@ export const deleteReset = async (req, res) => {
       const objects = listResponse.Contents || [];
 
       const deletePromises = objects.map((object) =>
-        s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: object.Key }))
+        s3Client.send(
+          new DeleteObjectCommand({ Bucket: bucketName, Key: object.Key })
+        )
       );
       await Promise.allSettled(deletePromises);
 
@@ -47,9 +55,10 @@ export const deleteReset = async (req, res) => {
     }
 
     // reset the registry.csv and users.csv files
-    fs.writeFileSync("./registry.json", JSON.stringify([], null, 2));
+    fs.writeFileSync("./registry.json", JSON.stringify({}, null, 2));
     fs.writeFileSync("./users.csv", "username,password,permLevel,isAdmin\n");
-    const defaultUser = "ece30861defaultadminuser,correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;,2,true";
+    const defaultUser =
+      "ece30861defaultadminuser,correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;,2,true";
     fs.appendFileSync("./users.csv", defaultUser + "\n");
 
     res.status(200).send("Registry is reset.");
