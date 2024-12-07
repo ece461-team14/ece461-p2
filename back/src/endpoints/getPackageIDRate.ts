@@ -33,7 +33,7 @@ export const getPackageIDRate = async (req, res) => {
 
     // Get Package ID
     const packageId = req.params.id; // get package id according to spec
-    console.log("ID: ", packageId);
+    console.log("package id: ", packageId);
     if (!packageId) {
       // new because we need package ID acessible to get cost
       return res
@@ -42,22 +42,17 @@ export const getPackageIDRate = async (req, res) => {
     }
 
     // Get Package Metadata
-    const bucketName = process.env.S3_BUCKET; // s3 bucket must be referenced
-    if (!bucketName) {
-      return res.status(500).send("S3 bucket name is not set.");
+    const registryEntry = getRegistryEntry(packageId);
+    if (registryEntry === null) {
+      console.log("Package does not exist.");
+      return res.status(404).send("Package does not exist.");
+    }
+    else if (Object.keys(registryEntry.Score).length === 0) {
+      console.log("Package does not exist.");
+      return res.status(500).send("The package rating system choked on at least one of the metrics.");
     }
 
-    let score = await getScoreFromRegistry(packageId);
-    // if (score == null) {
-    //   score = await processUrl(URL);
-
-    // }
-
-
-
-
-
-
+    return res.status(200).send(registryEntry.Score);
   } catch (err) {
     console.error("Error handling /package/{id}/rate request:", err);
     res.status(500).send("The package rating system choked on at least one of the metrics.");
@@ -65,42 +60,27 @@ export const getPackageIDRate = async (req, res) => {
 
 };
 
-async function getScoreFromRegistry(ID: string): Promise<string | null> {
-  const filePath = "registry.csv";
-
-  try {
-    // Read the CSV file as a string
-    const data = await fs.promises.readFile(filePath, "utf8");
-
-    // Split the file into rows
-    const rows = data.trim().split("\n");
-
-    // Get the header and data rows
-    const headers = rows[0].split(",");
-    const dataRows = rows.slice(1);
-
-    // Find the index of relevant columns
-    const nameIndex = headers.indexOf("ID");
-    const scoreIndex = headers.indexOf("score");
-
-    if (nameIndex === -1 || scoreIndex === -1) {
-      throw new Error("Required columns not found in the CSV file.");
-    }
-
-    // Search for the row with correct ID
-    for (const row of dataRows) {
-      const columns = row.split(",");
-
-      if (columns[nameIndex] === ID) {
-        return columns[scoreIndex];
-      }
-    }
-
-    // Return null if ID not found
-    return null;
-
-  } catch (error) {
-    console.error("Error reading or processing the CSV file:", error);
+function getRegistryEntry(targetId: string): any | null {
+  let registry;
+  if (fs.existsSync("./registry.json")) {
+    // Load the existing JSON object from the file
+    const fileContent = fs.readFileSync("./registry.json", "utf-8");
+    registry = JSON.parse(fileContent); // Parse the JSON content into an object
+  }
+  else {
     return null;
   }
+
+  // Iterate over the keys (name fields) in the registry
+  for (const nameField in registry) {
+    if (Object.hasOwnProperty.call(registry, nameField)) {
+      // Iterate over the array of objects under each name field
+      for (const entry of registry[nameField]) {
+        if (entry.ID === targetId) {
+          return entry; // Return the object with the matching ID
+        }
+      }
+    }
+  }
+  return null; // Return null if no match is found
 }

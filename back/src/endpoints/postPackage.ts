@@ -91,7 +91,8 @@ export const postPackage = async (req, res) => {
       Name,
       Version,
       ID: packageID,
-      Score: -1,
+      JSProgram: JSProgram,
+      Score: {},
       Cost: -1,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
@@ -116,7 +117,7 @@ export const postPackage = async (req, res) => {
           console.log("Package is not uploaded due to the disqualified rating.");
           return res.status(424).send("Package is not uploaded due to the disqualified rating.");
         }
-        metadata.Score = rating.NetScore;
+        metadata.Score = rating;
         // TODO: Probably want to save the repo URL in the metadata
       } catch (err) {
         console.error("Error handling /package request:", err);
@@ -152,7 +153,7 @@ export const postPackage = async (req, res) => {
             .status(424)
             .send("Package is not uploaded due to the disqualified rating.");
         }
-        metadata.Score = rating.NetScore;
+        metadata.Score = rating;
       } catch (err) {
         debug(
           "The package rating system choked on at least one of the metrics."

@@ -11,14 +11,19 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 export const postPackages = async (req: Request, res: Response) => {
   try {
     // Validate the JWT from the Authorization header
-    const authToken = req.header("X-Authorization");
-    if (!authToken) {
-      return res
-        .status(403)
-        .send("Authentication failed due to missing token.");
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+    }
+    console.log('packages/ test');
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
     }
 
-    const token = authToken.replace("Bearer ", ""); // Remove the 'Bearer ' prefix
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Token payload:", decoded);
     
     let user;
     try {

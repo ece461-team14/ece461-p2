@@ -14,7 +14,7 @@ export const deleteReset = async (req, res) => {
   try {
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication token is missing.");
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
     }
 
     const token = authHeader.split(" ")[1];

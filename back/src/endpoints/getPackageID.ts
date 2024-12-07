@@ -14,6 +14,7 @@ dotenv.config();
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const getPackageID = async (req, res) => {
+  console.log('package id endpoint');
   try {
     const packageId = req.params.id;
 
