@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 
 // Request timeout middleware
 app.use((req, res, next) => {
-  const timeout = 100000; // 100 seconds in milliseconds
+  const timeout = 200000; // 200 seconds in milliseconds
   const timer = setTimeout(() => {
     if (!res.headersSent) {
       console.log("Request timed out");
