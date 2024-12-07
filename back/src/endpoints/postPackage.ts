@@ -199,6 +199,7 @@ export const postPackage = async (req, res) => {
 
     // Create the new registry entry
     const newRegistryEntry = {
+      Name: Name,
       ID: packageID,
       Version: Version,
       TimeUploaded: timeUploaded,
