@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
+import { info, debug, silent } from "../utils/logger.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -68,7 +69,7 @@ export const putAuthenticate = async (req, res) => {
     //const response = { token: `bearer ${token}` };
     return res.status(200).send(`"bearer ${token}"`);
   } catch (err) {
-    console.error("Error handling /authenticate request:", err);
+    debug(`Error in putAuthenticate: ${err}`);
     return res.status(500).send("Internal server error.");
   }
 };

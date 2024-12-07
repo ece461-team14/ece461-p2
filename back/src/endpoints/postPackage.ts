@@ -2,14 +2,10 @@ import axios from "axios";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { processUrl } from "../utils/phase1_app.js";
-import {
-  S3Client,
-  HeadObjectCommand,
-  PutObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { Readable } from "stream";
+import { info, debug, silent } from "../utils/logger.js";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
+import { stringify } from "querystring";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const RATING_THRESHOLD = 0.5;
@@ -29,6 +25,7 @@ export const postPackage = async (req, res) => {
     const token = authHeader.split(" ")[1]; // Extract token part
     if (!token) {
       // console.log("Token format is incorrect. Use 'Bearer <token>");
+      debug("Token format is incorrect. Use 'Bearer <token>");
       return res
         .status(403)
         .send(
@@ -44,6 +41,7 @@ export const postPackage = async (req, res) => {
 
     // Validate the request body
     if (!Name || !Version || !JSProgram || (!Content && !URL)) {
+      debug("Missing field(s) in the PackageData or it is formed improperly.");
       return res
         .status(400)
         .send(
@@ -90,7 +88,7 @@ export const postPackage = async (req, res) => {
       }
     } catch (err) {
       if (err.name !== "NotFound") {
-        console.error("Error accessing registry.csv:", err);
+        debug("Error accessing registry.csv.");
         return res.status(500).send("Error accessing registry.csv.");
       }
     }
@@ -125,6 +123,7 @@ export const postPackage = async (req, res) => {
 
       // Check buffer size before uploading
       if (contentBuffer.length === 0) {
+        debug("The uploaded content is empty or invalid.");
         return res
           .status(400)
           .send("The uploaded content is empty or invalid.");
@@ -141,19 +140,19 @@ export const postPackage = async (req, res) => {
     } else if (URL) {
       try {
         const rating = await processUrl(URL);
-        // console.log("rating: ", rating);
+        info("Rating: " + rating);
 
         if (rating.NetScore <= RATING_THRESHOLD) {
-          // console.log(
-          //   "Package is not uploaded due to the disqualified rating."
-          // );
+          debug("Package is not uploaded due to the disqualified rating.");
           return res
             .status(424)
             .send("Package is not uploaded due to the disqualified rating.");
         }
         metadata.Score = rating.NetScore;
       } catch (err) {
-        console.error("Error handling /package request:", err);
+        debug(
+          "The package rating system choked on at least one of the metrics."
+        );
         res
           .status(500)
           .send(
@@ -195,6 +194,10 @@ export const postPackage = async (req, res) => {
       data,
     };
     // console.log("Response object:", responseObject);
+
+    debug("Responding with the following package information:");
+    // debug the stringified response object
+    debug(JSON.stringify(responseObject, null, 2));
 
     // Respond with the package information
     res.status(201).json({
