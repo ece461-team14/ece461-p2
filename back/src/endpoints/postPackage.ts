@@ -202,6 +202,7 @@ export const postPackage = async (req, res) => {
     console.log(registry);
 
     // Save the updated registry back to the JSON file
+    console.log(JSON.stringify(registry, null, 2));
     fs.writeFileSync("./registry.json", JSON.stringify(registry, null, 2), 'utf8');
 
     // Data response object
@@ -250,17 +251,30 @@ async function downloadPackageFromURL(url) {
     if (url.includes("github.com")) {
       // Parse the GitHub URL to get the repository details
       const githubUrl = new URL(url);
-      const parts = githubUrl.pathname.split("/");
-      const username = parts[1];
-      const repoName = parts[2];
+      const parts = githubUrl.pathname.split("/").filter(Boolean);
 
-      // Construct the URL for downloading the main branch as a ZIP file
-      const githubZipUrl = `https://github.com/${username}/${repoName}/archive/refs/heads/main.zip`;
+      if (parts.length < 2) {
+        throw new Error("Invalid GitHub URL.");
+      }
+
+      const username = parts[0];
+      const repoName = parts[1];
+
+      // Use GitHub API to get repository details
+      const apiUrl = `https://api.github.com/repos/${username}/${repoName}`;
+      const repoDetailsResponse = await axios.get(apiUrl);
+
+      // Extract the default branch from the API response
+      const defaultBranch = repoDetailsResponse.data.default_branch;
+
+      // Construct the URL for downloading the ZIP file of the default branch
+      const githubZipUrl = `https://github.com/${username}/${repoName}/archive/refs/heads/${defaultBranch}.zip`;
 
       // Fetch the ZIP file from GitHub
       const response = await axios.get(githubZipUrl, {
         responseType: "arraybuffer",
       });
+
       return response.data;
     } else if (url.includes("npmjs.org")) {
       // Parse the npm package name from the URL

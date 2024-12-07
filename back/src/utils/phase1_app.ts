@@ -5,6 +5,7 @@ import { info, debug, silent } from "./logger.js";
 
 export async function processUrl(url: string) {
   try {
+    console.log("PROCESS URL");
     const startTime = Date.now();
     const score = await ms.netScore(url);
     const netScoreLatency = Date.now() - startTime; // overall Netscore Latency
@@ -29,6 +30,7 @@ export async function processUrl(url: string) {
       Dependency_Latency: score.License_Latency,
       Review_Latency: score.License_Latency,
     };
+    console.log("PROCESS URL SUCCESS");
     return ret;
   } catch (err) {
     await info(`Error processing ${url}: ${err.message}`);

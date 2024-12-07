@@ -39,7 +39,7 @@ Thumbs.db
 
 # database files
 users.csv
-registry.csv
+registry.json
 
 # Jackson Testing Files
 a.json
