@@ -4,13 +4,12 @@ import * as path from "path";
 import { info, debug, silent } from "./logger.js";
 
 export async function processUrl(url: string) {
-  // console.log('Processing URL');
   try {
     const startTime = Date.now();
     const score = await ms.netScore(url);
     const netScoreLatency = Date.now() - startTime; // overall Netscore Latency
 
-    await info(`Processed URL: ${url}, Score: ${score}`);
+    await info(`Processed URL: ${url}, Score: ${score.NetScore}`);
     let ret = {
       URL: url,
       NetScore: score.NetScore,

@@ -15,9 +15,11 @@ import { postUsers } from "./endpoints/postUsers.js";
 
 const app = express();
 
-app.use(cors({
-  origin: "http://localhost:3000", // for only front end allowed to make requests
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000", // for only front end allowed to make requests
+  })
+);
 app.use(express.json());
 
 const USERS_FILE = path.resolve("ece461-p2/users.csv");
@@ -26,6 +28,20 @@ const USERS_FILE = path.resolve("ece461-p2/users.csv");
 // (probably remove/replace for final deliverable)
 app.get("/", (req, res) => {
   res.send("Hello World!");
+});
+
+// Request timeout middleware
+app.use((req, res, next) => {
+  const timeout = 100000; // 100 seconds in milliseconds
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(503).send({ error: "Request timed out" });
+    }
+  }, timeout);
+
+  // Clear timeout if response finishes before the limit
+  res.on("finish", () => clearTimeout(timer));
+  next();
 });
 
 app.post("/packages", postPackages);
@@ -39,6 +55,5 @@ app.put("/authenticate", putAuthenticate);
 app.post("/package/byRegEx", postPackageByRegEx);
 app.get("/tracks", getTracks);
 app.post("/users", postUsers);
-
 
 export default app;
