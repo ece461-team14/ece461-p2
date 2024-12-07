@@ -8,21 +8,44 @@ const baseUrl = "http://dl-berlin.ecn.purdue.edu:8000";
 
 function printReadableScore(data) {
   console.log("Scores:");
+  let summary;
   for (const [group, tests] of Object.entries(data)) {
-    if (typeof tests === "object") {
+    if (typeof tests === "object" && tests !== null) {
       console.log(`\n${group}:`);
-      for (const [test, score] of Object.entries(tests)) {
-        if (test === "Total") {
-          console.log(`  ${test}: ${score}`);
-        } else {
-          const status = score === 0 ? "FAIL" : "PASS";
-          const color = score === 0 ? "\x1b[31m" : "\x1b[32m";
-          console.log(`  ${test}: ${color}${status}\x1b[0m`);
-        }
+
+      // Separate Total from other tests
+      const entries = Object.entries(tests);
+      const otherTests = entries.filter(([key]) => key !== "Total");
+      const totalTest = entries.find(([key]) => key === "Total");
+
+      // Print other tests
+      for (const [test, score] of otherTests) {
+        const status = score === 0 ? "FAIL" : "PASS";
+        const color = score === 0 ? "\x1b[31m" : "\x1b[32m";
+        console.log(`  ${test}: ${color}${status}\x1b[0m`);
       }
+
+      // Print Total last if it exists
+      if (totalTest) {
+        const [test, score] = totalTest;
+        console.log(`  ${test}: ${score}`);
+      }
+    } else if (group === "Total") {
+      summary = `\n${group}: ${tests}`;
     } else {
-      console.log(`\n${group}: ${tests}`);
+      console.log(`${group}: ${tests}`);
     }
+  }
+  if (summary) {
+    // scrape score out of summary "Total: X / 69"
+    let score = summary.match(/Total: (\d+) \/ 69/)[1];
+
+    // if score is less than 35, print in red,
+    // if less than 52, print in yellow
+    // else print in green
+    const color =
+      score < 35 ? "\x1b[31m" : score < 52 ? "\x1b[33m" : "\x1b[32m";
+    console.log(`${color}${summary}\x1b[0m`);
   }
 }
 
