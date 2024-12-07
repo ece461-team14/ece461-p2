@@ -10,6 +10,7 @@ const Signup: React.FC<SignupProps> = ({ onSignupComplete, addUser }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {

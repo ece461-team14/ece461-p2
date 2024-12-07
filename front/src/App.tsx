@@ -17,6 +17,7 @@ interface Package {
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userRegistry, setUserRegistry] = useState<{ username: string; password: string }[]>([]);
 
   const [files, setFiles] = useState<Package[]>([]);

@@ -36,7 +36,8 @@ export const putAuthenticate = async (req, res) => {
       .map((line) => line.trim())
       .filter((line) => line)
       .map((line) => {
-        const [storedName, storedPassword, permLevel, storedIsAdmin] = line.split(",");
+        const [storedName, storedPassword, permLevel, storedIsAdmin] =
+          line.split(",");
         return {
           name: storedName,
           password: storedPassword,
@@ -65,7 +66,7 @@ export const putAuthenticate = async (req, res) => {
 
     // Return the token
     //const response = { token: `bearer ${token}` };
-    return res.status(200).send(`\"bearer ${token}\"`);
+    return res.status(200).send(`"bearer ${token}"`);
   } catch (err) {
     console.error("Error handling /authenticate request:", err);
     return res.status(500).send("Internal server error.");
