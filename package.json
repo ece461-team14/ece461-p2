@@ -23,7 +23,9 @@
         "progress": "node autograder.js progress",
         "best": "node autograder.js best",
         "last": "node autograder.js last",
-        "log": "node autograder.js log"
+        "log": "node autograder.js log",
+        "abort": "node autograder.js abort",
+        "stat": "node autograder.js stat"
     },
     "keywords": [],
     "author": "",
