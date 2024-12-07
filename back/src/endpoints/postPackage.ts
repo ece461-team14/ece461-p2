@@ -5,7 +5,6 @@ import { processUrl } from "../utils/phase1_app.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
-import { stringify } from "querystring";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const RATING_THRESHOLD = 0.5;
@@ -42,6 +41,11 @@ export const postPackage = async (req, res) => {
     // Validate the request body
     if (!Name || !Version || !JSProgram || (!Content && !URL)) {
       debug("Missing field(s) in the PackageData or it is formed improperly.");
+      // log the exact missing field(s) for debugging
+      debug("Name:" + Name);
+      debug("Version:" + Version);
+      debug("JSProgram:" + JSProgram);
+      debug("Content:" + Content);
       return res
         .status(400)
         .send(
