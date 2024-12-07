@@ -6,15 +6,15 @@ import {
 import * as fs from "fs";
 import { Readable } from "stream";
 import { idExists, getObjFromId } from "../utils/idReg.js";
+import { getPackageFromID } from "../utils/s3Utils.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-// import { get } from "axios";
 dotenv.config();
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const getPackageID = async (req, res) => {
-  console.log('package id endpoint');
+  console.log("package id endpoint");
   try {
     const packageId = req.params.id;
 
@@ -64,15 +64,8 @@ export const getPackageID = async (req, res) => {
       const metadata = getObjFromId(regCache, packageId);
 
       // Get the package content
-      const packageKey = `${packageId}`;
-      const packageResponse = await s3Client.send(
-        new GetObjectCommand({
-          Bucket: bucketName,
-          Key: packageKey,
-        })
-      );
-
-      const content = await streamToString(packageResponse.Body as Readable);
+      const packageResponse = await getPackageFromID(bucketName, packageId);
+      const content = packageResponse.toString("base64");
 
       // Send response with metadata and content
       res.status(200).json({
@@ -88,12 +81,3 @@ export const getPackageID = async (req, res) => {
     res.status(500).send("An error occurred while retrieving the package.");
   }
 };
-
-// Helper function for converting stream to string
-async function streamToString(stream: Readable): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (let chunk of stream) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}

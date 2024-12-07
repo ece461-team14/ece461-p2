@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
-import {
-  S3Client,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import jwt from "jsonwebtoken";
-import { fetchPackageMetadata } from "../utils/s3Utils.js";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -13,18 +9,26 @@ export const postPackages = async (req: Request, res: Response) => {
     // Validate the JWT from the Authorization header
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
-    console.log('packages/ test');
+    // console.log("packages/ test");
 
     const token = authHeader.split(" ")[1];
     if (!token) {
-      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token payload:", decoded);
-    
+    // console.log("Token payload:", decoded);
+
     let user;
     try {
       user = jwt.verify(token, process.env.JWT_SECRET);
@@ -59,11 +63,12 @@ export const postPackages = async (req: Request, res: Response) => {
     }
 
     // Fetch metadata for all listed objects
-    const metadataList = await fetchPackageMetadata(
-      listResponse.Contents,
-      bucketName,
-      s3Client
-    );
+    const metadataList = [];
+    // const metadataList = await fetchPackageMetadata(
+    //   listResponse.Contents,
+    //   bucketName,
+    //   s3Client
+    // );
 
     // Filter packages based on queries
     const filteredPackages = metadataList.filter((pkg) => {
