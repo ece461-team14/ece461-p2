@@ -5,9 +5,10 @@ import { processUrl } from "../utils/phase1_app.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
+import AdmZip from "adm-zip";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const RATING_THRESHOLD = 0.5;
+const RATING_THRESHOLD = 0.4;
 
 export const postPackage = async (req, res) => {
   try {
@@ -121,6 +122,24 @@ export const postPackage = async (req, res) => {
         return res.status(400).send("Content is missing or empty.");
       }
 
+      // Generate Metric Score 
+      const repoURL = await extractRepoURL(Content);
+      console.log(repoURL);
+      try {
+        const rating = await processUrl(repoURL);
+        console.log("rating: ", rating);
+
+        if (rating.NetScore <= RATING_THRESHOLD) {
+          console.log("Package is not uploaded due to the disqualified rating.");
+          return res.status(424).send("Package is not uploaded due to the disqualified rating.");
+        }
+        metadata.Score = rating.NetScore;
+        // TODO: Probably want to save the repo URL in the metadata
+      } catch (err) {
+        console.error("Error handling /package request:", err);
+        res.status(500).send("The package rating system choked on at least one of the metrics.");
+      }
+
       const contentBuffer = Buffer.from(Content, "binary");
       // console.log("Buffer length:", contentBuffer.length); // Log buffer size
 
@@ -204,7 +223,6 @@ export const postPackage = async (req, res) => {
 
     // Respond with the package information
     res.status(201).json({
-      message: "Package uploaded successfully",
       metadata,
       data,
     });
@@ -273,5 +291,63 @@ async function downloadPackageFromURL(url) {
   } catch (error) {
     console.error("Error downloading package:", error);
     return null;
+  }
+}
+
+/**
+ * Extracts the `package.json` from a base64-encoded zip file.
+ * @param base64Zip The base64-encoded zip file string.
+ * @returns The parsed JSON content of `package.json` if found, or `null`.
+ */
+async function extractRepoURL(base64Zip: string): Promise<string | null> {
+  try {
+      // Step 1: Decode the Base64 string
+      const zipBuffer = Buffer.from(base64Zip, "base64");
+
+      // Step 2: Parse the zip file
+      const zip = new AdmZip(zipBuffer);
+
+      // Step 3: Search for `package.json` in any directory
+      const packageJsonEntry = zip.getEntries().find((entry) => entry.entryName.endsWith("package.json"));
+      if (!packageJsonEntry) {
+          console.error("package.json not found in the zip file.");
+          return null;
+      }
+
+      // Step 4: Read and parse `package.json`
+      const packageJsonContent = packageJsonEntry.getData().toString("utf-8");
+      const packageJson = JSON.parse(packageJsonContent);
+
+      // Step 5: Extract the repository URL
+      let repositoryUrl: string | null = null;
+
+      // Check for the `repository` field
+      if (typeof packageJson.repository === "string") {
+          repositoryUrl = packageJson.repository;
+      } else if (typeof packageJson.repository === "object" && typeof packageJson.repository.url === "string") {
+          repositoryUrl = packageJson.repository.url;
+      }
+      console.log(packageJson.repository.url);
+
+      // Check for the top-level `url` field as a fallback
+      if (!repositoryUrl && typeof packageJson.url === "string") {
+          repositoryUrl = packageJson.url;
+      }
+
+      // Trim and clean up the URL
+      if (repositoryUrl) {
+        const match = repositoryUrl.match(/https:\/\/.+/);
+        repositoryUrl = match ? match[0].trim() : null;
+
+        // Remove `.git` at the end, if present
+        if (repositoryUrl && repositoryUrl.endsWith(".git")) {
+            repositoryUrl = repositoryUrl.slice(0, -4);
+        }
+    }
+
+      return repositoryUrl;
+  } catch (error) {
+      console.error("Error extracting package.json:", error);
+      return null;
   }
 }
