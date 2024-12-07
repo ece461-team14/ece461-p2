@@ -200,7 +200,7 @@ export const postPackage = async (req, res) => {
 
     debug("Responding with the following package information:");
     // debug the stringified response object (for testing)
-    debug(JSON.stringify(responseObject, null, 2));
+    // debug(JSON.stringify(responseObject, null, 2));
 
     // Respond with the package information
     res.status(201).json({
