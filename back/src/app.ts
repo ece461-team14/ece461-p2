@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { postPackages } from "./endpoints/postPackages.js";
 import { deleteReset } from "./endpoints/deleteReset.js";
 import { getPackageID } from "./endpoints/getPackageID.js";
@@ -10,10 +11,16 @@ import { getPackageIDCost } from "./endpoints/getPackageIDCost.js";
 import { putAuthenticate } from "./endpoints/putAuthenticate.js";
 import { postPackageByRegEx } from "./endpoints/postPackageByRegEx.js";
 import { getTracks } from "./endpoints/getTracks.js";
+import { postUsers } from "./endpoints/postUsers.js";
 
 const app = express();
+
+app.use(cors({
+  origin: "http://localhost:3000", // for only front end allowed to make requests
+}));
 app.use(express.json());
-app.use(cors());
+
+const USERS_FILE = path.resolve("ece461-p2/users.csv");
 
 // Endpoint for testing connectivity
 // (probably remove/replace for final deliverable)
@@ -31,5 +38,7 @@ app.get("/package/:id/cost", getPackageIDCost);
 app.put("/authenticate", putAuthenticate);
 app.post("/package/byRegEx", postPackageByRegEx);
 app.get("/tracks", getTracks);
+app.post("/users", postUsers);
+
 
 export default app;

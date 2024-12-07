@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import Login from "./Login";
+import Signup from "./Signup";
+import axios from "axios";
 
 const apiUrl = "http://34.199.154.104:8080";
 
@@ -14,6 +16,9 @@ interface Package {
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+  const [userRegistry, setUserRegistry] = useState<{ username: string; password: string }[]>([]);
+
   const [files, setFiles] = useState<Package[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,22 +31,21 @@ const App: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${apiUrl}/packages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Authorization": "your_auth_token", // actual token
-          offset: "0",
-        },
-        body: JSON.stringify([{ name: "*", version: undefined }]),
-      });
+      const token = localStorage.getItem("authToken");
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!token) {
+        setError("User is not authenticated.");
+        setLoading(false);
+        return;
       }
 
-      const data: Package[] = await response.json();
-      setFiles(data);
+      const response = await axios.get(`${apiUrl}/packages`, {
+        headers: {
+          "Authorization": token,
+        },
+      });
+
+      setFiles(response.data);
     } catch (error) {
       if (error instanceof Error) {
         setError(`Error fetching packages: ${error.message}`);
@@ -59,8 +63,34 @@ const App: React.FC = () => {
     }
   }, [fetchFiles, isAuthenticated]);
 
-  const handleLogin = () => {
+  const handleLogin = (token: string) => {
+    localStorage.setItem("authToken", token); // Store JWT token
     setIsAuthenticated(true); // Mark user as logged in
+  };
+
+  const handleSignupToggle = () => {
+    setShowSignup((prev) => !prev); // Toggle between Login and Signup
+  };
+
+  const addUser = async (username: string, password: string): Promise<void> => {
+    console.log("in here");
+    try {
+      const response = await fetch("http://localhost:8080/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create user");
+      }
+  
+      console.log("User created successfully");
+    } catch (error) {
+      console.error("Error adding user:", error);
+      throw error; // Re-throw to allow the Signup component to catch it
+    }
   };
 
   const handleUpload = async () => {
@@ -171,7 +201,18 @@ const App: React.FC = () => {
   return (
     <div className="App">
       {!isAuthenticated ? (
-        <Login onLogin={handleLogin} /> // Show Login if not authenticated
+        showSignup ? (
+          <Signup
+            onSignupComplete={handleSignupToggle}
+            addUser={addUser}
+          />
+        ) : (
+          <Login
+            onLogin={handleLogin} // Handle login and pass the token
+            userRegistry={userRegistry}
+            onSignupClick={handleSignupToggle}
+          />
+        )
       ) : (
         <>
           <header className="App-header">
