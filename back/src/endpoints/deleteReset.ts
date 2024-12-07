@@ -47,7 +47,7 @@ export const deleteReset = async (req, res) => {
     }
 
     // reset the registry.csv and users.csv files
-    fs.writeFileSync("./registry.csv", "name,version,ID,score,cost,timeuploaded,usernameuploaded\n");
+    fs.writeFileSync("./registry.json", JSON.stringify([], null, 2));
     fs.writeFileSync("./users.csv", "username,password,permLevel,isAdmin\n");
     const defaultUser = "ece30861defaultadminuser,correcthorsebatterystaple123(!__+@**(A'\"`;DROP TABLE packages;,2,true";
     fs.appendFileSync("./users.csv", defaultUser + "\n");

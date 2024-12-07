@@ -37,6 +37,7 @@ export const postPackage = async (req, res) => {
     const username = (decoded as jwt.JwtPayload).name;
 
     let { Name, Version, JSProgram, Content, URL } = req.body;
+    console.log(Name);
 
     // Validate the request body
     if (!Name || !Version || (!Content && !URL)) {
@@ -63,41 +64,23 @@ export const postPackage = async (req, res) => {
       return res.status(500).send("S3 bucket name is not set.");
     }
 
-    // check if registry.csv exists locally, if not, create one
-    if (!fs.existsSync("./registry.csv")) {
-      fs.writeFileSync(
-        "./registry.csv",
-        "name,version,ID,score,cost,timeuploaded,usernameuploaded\n"
-      );
-    }
+    // Check if registry.json exists locally, if not, create one
+    let registry: { [key: string]: any[] } = {};
     let packageExists = false;
-
-    try {
-      // read file (trim off header row)
-      let registryContent = fs.readFileSync("./registry.csv", "utf8");
-      registryContent = registryContent.replace(
-        "name,version,ID,score,cost,timeuploaded,usernameuploaded\n",
-        ""
-      );
-      const registryEntries = registryContent.split("\n");
-
-      // Check if the package already exists in the registry
-      for (let entry of registryEntries) {
-        const [regName, regVersion] = entry.split(",");
-        if (regName === Name && regVersion === Version) {
-          packageExists = true;
-          break;
-        }
-      }
-    } catch (err) {
-      if (err.name !== "NotFound") {
-        debug("Error accessing registry.csv.");
-        return res.status(500).send("Error accessing registry.csv.");
-      }
+    if (fs.existsSync("./registry.json")) {
+      // Load the existing JSON object from the file
+      const fileContent = fs.readFileSync("./registry.json", "utf-8");
+      registry = JSON.parse(fileContent); // Parse the JSON content into an object
     }
 
-    if (packageExists) {
-      return res.status(409).send("Package already exists in registry.");
+    // Check if a field exists within a specific heading in the JSON object
+    const nameField = registry[Name];
+    if (nameField) {
+      if (nameField.find(entry => entry.Version === Version)) {
+        console.log("Package already exists in registry.");
+        return res.status(409).send("Package already exists in registry.");
+      }
+      packageExists = true; // Used to create name field if does not already exist
     }
 
     const timeUploaded = new Date().toISOString();
@@ -122,7 +105,6 @@ export const postPackage = async (req, res) => {
       }
 
       const contentBuffer = Buffer.from(Content, "binary");
-      // console.log("Buffer length:", contentBuffer.length); // Log buffer size
 
       // Check buffer size before uploading
       if (contentBuffer.length === 0) {
@@ -180,9 +162,28 @@ export const postPackage = async (req, res) => {
       );
     }
 
-    // Add the package entry to the registry.csv file
-    const newRegistryEntry = `${Name},${Version},${packageID},${metadata.Score},${metadata.Cost},${timeUploaded},${username}\n`;
-    fs.appendFileSync("./registry.csv", newRegistryEntry);
+    // Add the package entry to the registry.json file
+    // Check if the name field exists, and if not, initialize it
+    if (!packageExists) {
+      registry[Name] = [];
+    }
+
+    // Create the new registry entry
+    const newRegistryEntry = {
+      ID: packageID,
+      Version: Version,
+      TimeUploaded: timeUploaded,
+      UsernameUploaded: username,
+      Score: metadata.Score,
+      Cost: metadata.Cost,
+    };
+
+    // Add the new entry to the name field
+    registry[Name].push(newRegistryEntry);
+    console.log(registry);
+
+    // Save the updated registry back to the JSON file
+    fs.writeFileSync("./registry.json", JSON.stringify(registry, null, 2), 'utf8');
 
     // Data response object
     const data = {
