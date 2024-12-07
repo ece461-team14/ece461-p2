@@ -4,7 +4,7 @@ import * as path from "path";
 import { info, debug, silent } from "./logger.js";
 
 export async function processUrl(url: string) {
-  console.log('Processing URL');
+  // console.log('Processing URL');
   try {
     const startTime = Date.now();
     const score = await ms.netScore(url);

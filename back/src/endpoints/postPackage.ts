@@ -19,35 +19,43 @@ export const postPackage = async (req, res) => {
     // Extract token from the Authorization header (Bearer <token>)
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
 
     const token = authHeader.split(" ")[1]; // Extract token part
     if (!token) {
-      console.log("Token format is incorrect. Use 'Bearer <token>");
-      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.'");
+      // console.log("Token format is incorrect. Use 'Bearer <token>");
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header.'"
+        );
     }
 
     // Verify the JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = (decoded as jwt.JwtPayload).name;
 
-    const { Name, Version, JSProgram, Content, URL } = req.body;
-
-    // Data response object
-    const data = {
-      ...(Content !== undefined && { Content }),
-      ...(URL !== undefined && { URL }),
-      ...(JSProgram !== undefined && { JSProgram })
-    };
+    let { Name, Version, JSProgram, Content, URL } = req.body;
 
     // Validate the request body
     if (!Name || !Version || !JSProgram || (!Content && !URL)) {
-      return res.status(400).send("There are missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set).");
+      return res
+        .status(400)
+        .send(
+          "There are missing field(s) in the PackageData or it is formed improperly (e.g., both Content and URL are set)."
+        );
     }
 
     // Generate a package ID based on the name and version (using SHA-256 hash for uniqueness)
-    const packageID = crypto.createHash("sha256").update(`${Name}-${Version}`).digest("hex");
+    const packageID = crypto
+      .createHash("sha256")
+      .update(`${Name}-${Version}`)
+      .digest("hex");
 
     const bucketName = process.env.S3_BUCKET;
     if (!bucketName) {
@@ -55,17 +63,23 @@ export const postPackage = async (req, res) => {
     }
 
     // check if registry.csv exists locally, if not, create one
-    if (!fs.existsSync('./registry.csv')) {
-      fs.writeFileSync('./registry.csv', "name,version,ID,score,cost,timeuploaded,usernameuploaded\n");
+    if (!fs.existsSync("./registry.csv")) {
+      fs.writeFileSync(
+        "./registry.csv",
+        "name,version,ID,score,cost,timeuploaded,usernameuploaded\n"
+      );
     }
     let packageExists = false;
 
     try {
       // read file (trim off header row)
-      let registryContent = fs.readFileSync('./registry.csv', "utf8");
-      registryContent = registryContent.replace("name,version,ID,score,cost,timeuploaded,usernameuploaded\n", "");
+      let registryContent = fs.readFileSync("./registry.csv", "utf8");
+      registryContent = registryContent.replace(
+        "name,version,ID,score,cost,timeuploaded,usernameuploaded\n",
+        ""
+      );
       const registryEntries = registryContent.split("\n");
-      
+
       // Check if the package already exists in the registry
       for (let entry of registryEntries) {
         const [regName, regVersion] = entry.split(",");
@@ -74,7 +88,6 @@ export const postPackage = async (req, res) => {
           break;
         }
       }
-
     } catch (err) {
       if (err.name !== "NotFound") {
         console.error("Error accessing registry.csv:", err);
@@ -106,15 +119,17 @@ export const postPackage = async (req, res) => {
       if (!Content || Content.trim().length === 0) {
         return res.status(400).send("Content is missing or empty.");
       }
-    
+
       const contentBuffer = Buffer.from(Content, "binary");
-      console.log("Buffer length:", contentBuffer.length); // Log buffer size
-    
+      // console.log("Buffer length:", contentBuffer.length); // Log buffer size
+
       // Check buffer size before uploading
       if (contentBuffer.length === 0) {
-        return res.status(400).send("The uploaded content is empty or invalid.");
+        return res
+          .status(400)
+          .send("The uploaded content is empty or invalid.");
       }
-    
+
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
@@ -126,23 +141,33 @@ export const postPackage = async (req, res) => {
     } else if (URL) {
       try {
         const rating = await processUrl(URL);
-        console.log("rating: ", rating);
+        // console.log("rating: ", rating);
 
         if (rating.NetScore <= RATING_THRESHOLD) {
-          console.log("Package is not uploaded due to the disqualified rating.");
-          return res.status(424).send("Package is not uploaded due to the disqualified rating.");
+          // console.log(
+          //   "Package is not uploaded due to the disqualified rating."
+          // );
+          return res
+            .status(424)
+            .send("Package is not uploaded due to the disqualified rating.");
         }
         metadata.Score = rating.NetScore;
       } catch (err) {
         console.error("Error handling /package request:", err);
-        res.status(500).send("The package rating system choked on at least one of the metrics.");
+        res
+          .status(500)
+          .send(
+            "The package rating system choked on at least one of the metrics."
+          );
       }
 
       const packageData = await downloadPackageFromURL(URL);
       if (!packageData || packageData.length === 0) {
         return res.status(400).send("Downloaded package is empty or invalid.");
       }
-    
+
+      Content = packageData.toString("base64");
+
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
@@ -155,7 +180,21 @@ export const postPackage = async (req, res) => {
 
     // Add the package entry to the registry.csv file
     const newRegistryEntry = `${Name},${Version},${packageID},${metadata.Score},${metadata.Cost},${timeUploaded},${username}\n`;
-    fs.appendFileSync('./registry.csv', newRegistryEntry);
+    fs.appendFileSync("./registry.csv", newRegistryEntry);
+
+    // Data response object
+    const data = {
+      ...(Content !== undefined && { Content }),
+      ...(URL !== undefined && { URL }),
+      ...(JSProgram !== undefined && { JSProgram }),
+    };
+
+    // log response object for debugging
+    const responseObject = {
+      metadata,
+      data,
+    };
+    // console.log("Response object:", responseObject);
 
     // Respond with the package information
     res.status(201).json({
@@ -165,7 +204,9 @@ export const postPackage = async (req, res) => {
     });
   } catch (error) {
     console.error("Error handling /package request:", error);
-    res.status(500).send("An error occurred while uploading or ingesting the package.");
+    res
+      .status(500)
+      .send("An error occurred while uploading or ingesting the package.");
   }
 };
 
@@ -192,9 +233,10 @@ async function downloadPackageFromURL(url) {
       const githubZipUrl = `https://github.com/${username}/${repoName}/archive/refs/heads/main.zip`;
 
       // Fetch the ZIP file from GitHub
-      const response = await axios.get(githubZipUrl, { responseType: "arraybuffer" });
+      const response = await axios.get(githubZipUrl, {
+        responseType: "arraybuffer",
+      });
       return response.data;
-
     } else if (url.includes("npmjs.org")) {
       // Parse the npm package name from the URL
       const npmPackageName = url.split("/").pop();
@@ -210,18 +252,18 @@ async function downloadPackageFromURL(url) {
         const tarballUrl = response.data.dist.tarball;
 
         // Download the tarball package
-        const packageResponse = await axios.get(tarballUrl, { responseType: "arraybuffer" });
+        const packageResponse = await axios.get(tarballUrl, {
+          responseType: "arraybuffer",
+        });
         return packageResponse.data;
       } else {
         console.error("No tarball found for npm package.");
         return null;
       }
-
     } else {
       console.error("Unsupported URL format.");
       return null;
     }
-
   } catch (error) {
     console.error("Error downloading package:", error);
     return null;
