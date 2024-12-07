@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import { silent } from "./utils/logger.js";
 import { postPackages } from "./endpoints/postPackages.js";
 import { deleteReset } from "./endpoints/deleteReset.js";
 import { getPackageID } from "./endpoints/getPackageID.js";
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
   const timeout = 100000; // 100 seconds in milliseconds
   const timer = setTimeout(() => {
     if (!res.headersSent) {
+      silent("Request timed out");
       res.status(503).send({ error: "Request timed out" });
     }
   }, timeout);
