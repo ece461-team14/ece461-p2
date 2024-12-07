@@ -14,7 +14,11 @@ export const deleteReset = async (req, res) => {
   try {
     const authHeader = req.header("X-Authorization");
     if (!authHeader) {
-      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
 
     const token = authHeader.split(" ")[1];
@@ -25,7 +29,7 @@ export const deleteReset = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token payload:", decoded);
+    // console.log("Token payload:", decoded);
 
     const bucketName = process.env.S3_BUCKET;
     if (!bucketName) {

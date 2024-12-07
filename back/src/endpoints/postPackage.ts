@@ -38,7 +38,7 @@ export const postPackage = async (req, res) => {
     const username = (decoded as jwt.JwtPayload).name;
 
     let { Name, Version, JSProgram, Content, URL } = req.body;
-    console.log(Name);
+    // console.log(Name);
 
     // Validate the request body
     if (!Name || !Version || (!Content && !URL)) {
@@ -70,15 +70,16 @@ export const postPackage = async (req, res) => {
     let packageExists = false;
     if (fs.existsSync("./registry.json")) {
       // Load the existing JSON object from the file
-      const fileContent = fs.readFileSync("./registry.json", "utf-8");
+      const fileContent = fs.readFileSync("./registry.json", "utf8");
       registry = JSON.parse(fileContent); // Parse the JSON content into an object
     }
+    // console.log("Registry: ", registry);
 
     // Check if a field exists within a specific heading in the JSON object
     const nameField = registry[Name];
     if (nameField) {
-      if (nameField.find(entry => entry.Version === Version)) {
-        console.log("Package already exists in registry.");
+      if (nameField.find((entry) => entry.Version === Version)) {
+        // console.log("Package already exists in registry.");
         return res.status(409).send("Package already exists in registry.");
       }
       packageExists = true; // Used to create name field if does not already exist
@@ -106,22 +107,30 @@ export const postPackage = async (req, res) => {
         return res.status(400).send("Content is missing or empty.");
       }
 
-      // Generate Metric Score 
+      // Generate Metric Score
       const repoURL = await extractRepoURL(Content);
-      console.log(repoURL);
+      // console.log(repoURL);
       try {
         const rating = await processUrl(repoURL);
-        console.log("rating: ", rating);
+        // console.log("rating: ", rating);
 
         if (rating.NetScore <= RATING_THRESHOLD) {
-          console.log("Package is not uploaded due to the disqualified rating.");
-          return res.status(424).send("Package is not uploaded due to the disqualified rating.");
+          // console.log(
+          //   "Package is not uploaded due to the disqualified rating."
+          // );
+          return res
+            .status(424)
+            .send("Package is not uploaded due to the disqualified rating.");
         }
         metadata.Score = rating;
         // TODO: Probably want to save the repo URL in the metadata
       } catch (err) {
         console.error("Error handling /package request:", err);
-        res.status(500).send("The package rating system choked on at least one of the metrics.");
+        res
+          .status(500)
+          .send(
+            "The package rating system choked on at least one of the metrics."
+          );
       }
 
       const contentBuffer = Buffer.from(Content, "binary");
@@ -200,11 +209,15 @@ export const postPackage = async (req, res) => {
 
     // Add the new entry to the name field
     registry[Name].push(newRegistryEntry);
-    console.log(registry);
+    // console.log(registry);
 
     // Save the updated registry back to the JSON file
-    console.log(JSON.stringify(registry, null, 2));
-    fs.writeFileSync("./registry.json", JSON.stringify(registry, null, 2), 'utf8');
+    // console.log(JSON.stringify(registry, null, 2));
+    fs.writeFileSync(
+      "./registry.json",
+      JSON.stringify(registry, null, 2),
+      "utf8"
+    );
 
     // Data response object
     const data = {
@@ -317,53 +330,58 @@ async function downloadPackageFromURL(url) {
  */
 async function extractRepoURL(base64Zip: string): Promise<string | null> {
   try {
-      // Step 1: Decode the Base64 string
-      const zipBuffer = Buffer.from(base64Zip, "base64");
+    // Step 1: Decode the Base64 string
+    const zipBuffer = Buffer.from(base64Zip, "base64");
 
-      // Step 2: Parse the zip file
-      const zip = new AdmZip(zipBuffer);
+    // Step 2: Parse the zip file
+    const zip = new AdmZip(zipBuffer);
 
-      // Step 3: Search for `package.json` in any directory
-      const packageJsonEntry = zip.getEntries().find((entry) => entry.entryName.endsWith("package.json"));
-      if (!packageJsonEntry) {
-          console.error("package.json not found in the zip file.");
-          return null;
-      }
-
-      // Step 4: Read and parse `package.json`
-      const packageJsonContent = packageJsonEntry.getData().toString("utf-8");
-      const packageJson = JSON.parse(packageJsonContent);
-
-      // Step 5: Extract the repository URL
-      let repositoryUrl: string | null = null;
-
-      // Check for the `repository` field
-      if (typeof packageJson.repository === "string") {
-          repositoryUrl = packageJson.repository;
-      } else if (typeof packageJson.repository === "object" && typeof packageJson.repository.url === "string") {
-          repositoryUrl = packageJson.repository.url;
-      }
-      console.log(packageJson.repository.url);
-
-      // Check for the top-level `url` field as a fallback
-      if (!repositoryUrl && typeof packageJson.url === "string") {
-          repositoryUrl = packageJson.url;
-      }
-
-      // Trim and clean up the URL
-      if (repositoryUrl) {
-        const match = repositoryUrl.match(/https:\/\/.+/);
-        repositoryUrl = match ? match[0].trim() : null;
-
-        // Remove `.git` at the end, if present
-        if (repositoryUrl && repositoryUrl.endsWith(".git")) {
-            repositoryUrl = repositoryUrl.slice(0, -4);
-        }
+    // Step 3: Search for `package.json` in any directory
+    const packageJsonEntry = zip
+      .getEntries()
+      .find((entry) => entry.entryName.endsWith("package.json"));
+    if (!packageJsonEntry) {
+      console.error("package.json not found in the zip file.");
+      return null;
     }
 
-      return repositoryUrl;
+    // Step 4: Read and parse `package.json`
+    const packageJsonContent = packageJsonEntry.getData().toString("utf-8");
+    const packageJson = JSON.parse(packageJsonContent);
+
+    // Step 5: Extract the repository URL
+    let repositoryUrl: string | null = null;
+
+    // Check for the `repository` field
+    if (typeof packageJson.repository === "string") {
+      repositoryUrl = packageJson.repository;
+    } else if (
+      typeof packageJson.repository === "object" &&
+      typeof packageJson.repository.url === "string"
+    ) {
+      repositoryUrl = packageJson.repository.url;
+    }
+    // console.log(packageJson.repository.url);
+
+    // Check for the top-level `url` field as a fallback
+    if (!repositoryUrl && typeof packageJson.url === "string") {
+      repositoryUrl = packageJson.url;
+    }
+
+    // Trim and clean up the URL
+    if (repositoryUrl) {
+      const match = repositoryUrl.match(/https:\/\/.+/);
+      repositoryUrl = match ? match[0].trim() : null;
+
+      // Remove `.git` at the end, if present
+      if (repositoryUrl && repositoryUrl.endsWith(".git")) {
+        repositoryUrl = repositoryUrl.slice(0, -4);
+      }
+    }
+
+    return repositoryUrl;
   } catch (error) {
-      console.error("Error extracting package.json:", error);
-      return null;
+    console.error("Error extracting package.json:", error);
+    return null;
   }
 }

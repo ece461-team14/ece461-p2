@@ -21,7 +21,8 @@ app.use(
     origin: "http://localhost:3000", // for only front end allowed to make requests
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Adjust "10mb" as needed
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const USERS_FILE = path.resolve("ece461-p2/users.csv");
 
