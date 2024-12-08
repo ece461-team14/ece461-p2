@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
+  const [packageCost, setPackageCost] = useState<any>(null); 
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -218,6 +219,27 @@ const App: React.FC = () => {
     }
   };
 
+  const fetchPackageCost = async () => {
+    if (!selectedPackageId) return; // Exit if no package is selected
+  
+    try {
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      const response = await axios.get(`${apiUrl}/package/${selectedPackageId}/cost?dependency=true`, {
+        headers: {
+          "X-Authorization": `Bearer ${cleanToken}`,
+        },
+      });
+  
+      if (response.data) {
+        setPackageCost(response.data[selectedPackageId]);
+      }
+    } catch (error) {
+      setError("Error fetching package cost");
+    }
+  };
+
   const handleUrlSubmit = async () => {
     if (url) {
       setLoading(true);
@@ -389,6 +411,24 @@ const App: React.FC = () => {
               <button onClick={fetchFiles} disabled={loading}>
                 Refresh List
               </button>
+
+              {/* "Get Cost" Button */}
+              {selectedPackageId && (
+                <div>
+                  <button onClick={fetchPackageCost} disabled={loading}>
+                    Get Cost
+                  </button>
+                </div>
+              )}
+
+              {/* Display package cost */}
+              {packageCost && (
+                <div>
+                  <h3>Package Cost:</h3>
+                  <p>Standalone Cost: {packageCost.standaloneCost}</p>
+                  <p>Total Cost: {packageCost.totalCost}</p>
+                </div>
+              )}
 
               {/* Download Button */}
               {selectedPackageId && (
