@@ -36,7 +36,7 @@ export const postPackages = async (req: Request, res: Response) => {
     } catch (err) {
       return res
         .status(403)
-        .send("Authentication failed due to invalid token.");
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
     // Parse the request body
@@ -44,7 +44,7 @@ export const postPackages = async (req: Request, res: Response) => {
     if (!Array.isArray(queries) || queries.some((q) => typeof q !== "object")) {
       return res
         .status(400)
-        .send("Invalid PackageQuery array in request body.");
+        .send("There is missing field(s) in the PackageQuery or it is formed improperly, or is invalid.");
     }
 
     const offset = parseInt(req.header("offset") || "0", 10);

@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
+import fs from "fs";
 import {
   S3Client,
   GetObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { match } from "assert";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const bucketName = process.env.S3_BUCKET;
@@ -43,57 +45,30 @@ export const postPackageByRegEx = async (req, res) => {
     // Compile the regex
     let regex;
     try {
-      regex = new RegExp(RegEx);
+      regex = new RegExp(RegEx, "i");
     } catch (error) {
       return res.status(400).send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
 
     // List objects in the bucket
-    const listCommand = new ListObjectsV2Command({ Bucket: bucketName });
-    const listResponse = await s3Client.send(listCommand);
+    const fileContent = fs.readFileSync("./registry.json", "utf8");
+    const registry = JSON.parse(fileContent); // Parse the JSON content into an object
+    let matchedPackages = [];
 
-    if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      return res.status(404).send("No package found under this regex.");
-    }
-
-    // Filter metadata files
-    const metadataKeys = listResponse.Contents.filter((object) =>
-      object.Key.endsWith("metadata.json")
-    ).map((object) => object.Key);
-
-    if (metadataKeys.length === 0) {
-      return res.status(404).send("No package found under this regex.");
-    }
-
-    // Search using RegEx
-    const matchedPackages = [];
-    for (const key of metadataKeys) {
-      try {
-        const metadataResponse = await s3Client.send(
-          new GetObjectCommand({ Bucket: bucketName, Key: key })
-        );
-        const metadataBody = await metadataResponse.Body.transformToString();
-        const metadata = JSON.parse(metadataBody);
-
-        // Check if package matches the RegEx
-        if (
-          regex.test(metadata.Name) ||
-          (metadata.Description && regex.test(metadata.Description))
-        ) {
+    for (const name of Object.keys(registry)) {
+      if (regex.test(name)) {
+        registry[name].forEach(pkg => {
           matchedPackages.push({
-            Name: metadata.Name,
-            Version: metadata.Version,
-            ID: metadata.ID,
+            Version: pkg.Version,
+            Name: pkg.Name,
+            ID: pkg.ID
           });
-        }
-      } catch (err) {
-        console.error(`Error retrieving or parsing metadata for ${key}:`, err);
-        // Continue to the next package
+        });
       }
     }
 
     if (matchedPackages.length === 0) {
-      return res.status(404).send("No package found under this regex.");
+      res.status(404).send("No package found under this regex.");
     }
 
     // Return the matched packages

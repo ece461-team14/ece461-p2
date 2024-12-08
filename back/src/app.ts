@@ -47,15 +47,15 @@ app.use((req, res, next) => {
   next();
 });
 
+app.put("/authenticate", putAuthenticate);
 app.post("/packages", postPackages);
 app.delete("/reset", deleteReset);
+app.post("/package/byRegEx", postPackageByRegEx);
 app.get("/package/:id", getPackageID);
 app.post("/package/:id", postPackageID);
-app.post("/package", postPackage);
 app.get("/package/:id/rate", getPackageIDRate);
 app.get("/package/:id/cost", getPackageIDCost);
-app.put("/authenticate", putAuthenticate);
-app.post("/package/byRegEx", postPackageByRegEx);
+app.post("/package", postPackage);
 app.get("/tracks", getTracks);
 app.post("/users", postUsers);
 
