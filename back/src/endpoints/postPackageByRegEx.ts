@@ -1,12 +1,7 @@
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import RE2 from "re2";
-import {
-  S3Client,
-  GetObjectCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
-import { match } from "assert";
+import { S3Client } from "@aws-sdk/client-s3";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const bucketName = process.env.S3_BUCKET;
@@ -35,9 +30,12 @@ export const postPackageByRegEx = async (req, res) => {
     // Verify the JWT token
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    }
-    catch (error) {
-      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    } catch (error) {
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing AuthenticationToken."
+        );
     }
 
     const { RegEx } = req.body;
@@ -46,7 +44,9 @@ export const postPackageByRegEx = async (req, res) => {
     if (!RegEx || typeof RegEx !== "string") {
       return res
         .status(400)
-        .send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
+        .send(
+          "There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid"
+        );
     }
 
     // Compile the regex
@@ -54,7 +54,11 @@ export const postPackageByRegEx = async (req, res) => {
     try {
       regex = new RE2(RegEx, "i");
     } catch (error) {
-      return res.status(400).send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
+      return res
+        .status(400)
+        .send(
+          "There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid"
+        );
     }
 
     // List objects in the bucket
@@ -64,11 +68,11 @@ export const postPackageByRegEx = async (req, res) => {
 
     for (const name of Object.keys(registry)) {
       if (regex.test(name)) {
-        registry[name].forEach(pkg => {
+        registry[name].forEach((pkg) => {
           matchedPackages.push({
             Version: pkg.Version,
             Name: pkg.Name,
-            ID: pkg.ID
+            ID: pkg.ID,
           });
         });
       }

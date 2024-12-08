@@ -1,10 +1,5 @@
-import {
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client } from "@aws-sdk/client-s3";
 import * as fs from "fs";
-import { Readable } from "stream";
 import { idExists, getObjFromId } from "../utils/idReg.js";
 import { getPackageFromID } from "../utils/s3Utils.js";
 import jwt from "jsonwebtoken";
@@ -23,7 +18,9 @@ export const getPackageID = async (req, res) => {
     if (!authHeader) {
       return res
         .status(403)
-        .send("Authentication failed due to invalid or missing AuthenticationToken.");
+        .send(
+          "Authentication failed due to invalid or missing AuthenticationToken."
+        );
     }
 
     const token = authHeader.split(" ")[1]; // Extract token after "Bearer "
@@ -38,7 +35,9 @@ export const getPackageID = async (req, res) => {
       if (err) {
         return res
           .status(403)
-          .send("Authentication failed due to invalid or missing AuthenticationToken.");
+          .send(
+            "Authentication failed due to invalid or missing AuthenticationToken."
+          );
       }
 
       // Proceed with the request handling (retrieving package)
