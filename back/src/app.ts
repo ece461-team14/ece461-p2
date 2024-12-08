@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { info, debug, silent } from "./utils/logger.js";
 import { postPackages } from "./endpoints/postPackages.js";
 import { deleteReset } from "./endpoints/deleteReset.js";
@@ -15,6 +16,8 @@ import { getTracks } from "./endpoints/getTracks.js";
 import { postUsers } from "./endpoints/postUsers.js";
 
 const app = express();
+
+fs.writeFileSync("./registry.json", JSON.stringify({}, null, 2));
 
 app.use(
   cors({

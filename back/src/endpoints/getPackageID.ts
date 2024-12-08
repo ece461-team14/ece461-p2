@@ -69,7 +69,11 @@ export const getPackageID = async (req, res) => {
 
       // Send response with metadata and content
       res.status(200).json({
-        metadata,
+        metadata: {
+          Name: metadata.Name,
+          Version: metadata.Version,
+          ID: metadata.ID,
+        },
         data: {
           // send content in base64 format
           Content: content,

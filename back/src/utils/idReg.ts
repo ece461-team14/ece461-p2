@@ -7,14 +7,15 @@ export function idExists(jsonData: Record<string, any>, id: string): boolean {
 }
 
 export function getObjFromId(
-  jsonData: Record<string, any>,
+  registry: Record<string, any>,
   id: string
-): { name: string; object: Record<string, any> } | null {
-  for (const [name, entries] of Object.entries(jsonData)) {
-    if (Array.isArray(entries)) {
-      for (const obj of entries) {
-        if (obj.ID === id) {
-          return { name, ...obj }; // Flatten the object
+): any | null {
+  for (const nameField in registry) {
+    if (Object.hasOwnProperty.call(registry, nameField)) {
+      // Iterate over the array of objects under each name field
+      for (const entry of registry[nameField]) {
+        if (entry.ID === id) {
+          return entry; // Return the object with the matching ID
         }
       }
     }

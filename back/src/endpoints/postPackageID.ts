@@ -168,10 +168,7 @@ export const postPackageID = async (req, res) => {
       ...(JSProgram !== undefined && { JSProgram }),
     };
 
-    res.status(200).json({
-      response_metadata,
-      response_data,
-    });
+    res.status(200).send("Version is updated.");
   } catch (error) {
     console.error("Error handling /update package request:", error);
     res.status(500).send("An error occurred while updating the package.");
