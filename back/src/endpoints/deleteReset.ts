@@ -28,8 +28,12 @@ export const deleteReset = async (req, res) => {
         .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log("Token payload:", decoded);
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch (error) {
+      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
 
     const bucketName = process.env.S3_BUCKET;
     if (!bucketName) {

@@ -28,8 +28,12 @@ export const getPackageIDRate = async (req, res) => {
     }
 
     // Verify the JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const username = (decoded as jwt.JwtPayload).name;
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch (error) {
+      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
 
     // Get Package ID
     const packageId = req.params.id; // get package id according to spec

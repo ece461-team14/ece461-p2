@@ -32,7 +32,13 @@ export const postPackageByRegEx = async (req, res) => {
         );
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify the JWT token
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch (error) {
+      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
 
     const { RegEx } = req.body;
 

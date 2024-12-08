@@ -19,7 +19,7 @@ export const postPackage = async (req, res) => {
       return res
         .status(403)
         .send(
-          "Authentication failed due to invalid or missing Authorization header."
+          "Authentication failed due to invalid or missing AuthenticationToken."
         );
     }
 
@@ -30,12 +30,18 @@ export const postPackage = async (req, res) => {
       return res
         .status(403)
         .send(
-          "Authentication failed due to invalid or missing Authorization header.'"
+          "Authentication failed due to invalid or missing AuthenticationToken.'"
         );
     }
 
     // Verify the JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch (error) {
+      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
     const username = (decoded as jwt.JwtPayload).name;
 
     let { Name, Version, JSProgram, Content, URL } = req.body;

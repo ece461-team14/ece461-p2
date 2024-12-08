@@ -18,7 +18,7 @@ export const getPackageIDCost = async (req, res) => {
     if (!token) {
       return res
         .status(403)
-        .send("Token format is incorrect. Use 'Bearer <token>'");
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
