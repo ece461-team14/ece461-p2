@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { executeJsOnZip } from "../utils/runJSProgram.js";
 import { processUrl } from "../utils/phase1_app.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -176,6 +177,15 @@ export const postPackageID = async (req, res) => {
             );
         }
 
+        if (JSProgram) {
+          const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+          if (programResponse === 1) {
+            return res
+              .status(406)
+              .send("Package has failed sensitive module check.");
+          }
+        }
+
         await s3Client.send(
           new PutObjectCommand({
             Bucket: bucketName,
@@ -200,6 +210,15 @@ export const postPackageID = async (req, res) => {
           return res
             .status(400)
             .send("Downloaded package is empty or invalid.");
+        }
+
+        if (JSProgram) {
+          const programResponse = await executeJsOnZip(packageData.toString("base64"), JSProgram, metadata, username);
+          if (programResponse === 1) {
+            return res
+              .status(406)
+              .send("Package has failed sensitive module check.");
+          }
         }
 
         await s3Client.send(
