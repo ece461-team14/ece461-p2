@@ -145,7 +145,7 @@ export const postPackageID = async (req, res) => {
     const newMetadata = {
       Name,
       Version,
-      ID,
+      ID: ID,
       JSProgram,
       TimeUpdated: timeUpdated,
       UsernameUploaded: username,
@@ -159,6 +159,7 @@ export const postPackageID = async (req, res) => {
     }
 
     // Handle content or URL upload
+    console.log("Name-Version: ", `${Name}-${Version}`);
     const packageID = crypto
       .createHash("sha256")
       .update(`${Name}-${Version}`)
@@ -181,7 +182,12 @@ export const postPackageID = async (req, res) => {
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+          const programResponse = await executeJsOnZip(
+            Content,
+            JSProgram,
+            metadata,
+            username
+          );
           if (programResponse === 1) {
             return res
               .status(406)
@@ -220,7 +226,12 @@ export const postPackageID = async (req, res) => {
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(packageData.toString("base64"), JSProgram, metadata, username);
+          const programResponse = await executeJsOnZip(
+            packageData.toString("base64"),
+            JSProgram,
+            metadata,
+            username
+          );
           if (programResponse === 1) {
             return res
               .status(406)
@@ -247,6 +258,7 @@ export const postPackageID = async (req, res) => {
     }
 
     // Update registry
+    newMetadata.ID = packageID;
     registry[packageName].push(newMetadata);
     fs.writeFileSync(
       "./registry.json",
