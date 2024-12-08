@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import fs from "fs";
+import RE2 from "re2";
 import {
   S3Client,
   GetObjectCommand,
@@ -45,7 +46,7 @@ export const postPackageByRegEx = async (req, res) => {
     // Compile the regex
     let regex;
     try {
-      regex = new RegExp(RegEx, "i");
+      regex = new RE2(RegEx, "i");
     } catch (error) {
       return res.status(400).send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
