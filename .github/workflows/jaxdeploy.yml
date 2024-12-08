@@ -36,9 +36,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm version
           npm install
-          npm rebuild re2
 
       - name: Build application
         run: |
@@ -53,12 +51,6 @@ jobs:
           cp node_modules prod -r
           zip -r prod.zip prod
         shell: bash
-
-      # - name: Upload production artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: prod.zip
-      #     path: prod.zip
 
       - name: Deploy to server
         uses: appleboy/scp-action@master
@@ -81,6 +73,6 @@ jobs:
             cd ~/prod
             pm2 delete backend || true
             pm2 delete frontend || true
-            pm2 start dist/back/src/index.js --name backend
+            pm2 start dist/back/src/index.js --name backend --interpreter=/home/ubuntu/.nvm/versions/node/v20.18.1/bin/node
             pm2 start "serve -s build" --name frontend
             rm -rf ../prod.zip
