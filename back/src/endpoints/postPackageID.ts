@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { processUrl } from "../utils/phase1_app.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -20,7 +21,7 @@ export const postPackageID = async (req, res) => {
 
     const token = authHeader.split(" ")[1]; // Extract token part
     if (!token) {
-      debug("Token format is incorrect. Use 'Bearer <token>");
+      debug("Token format is incorrect. Use 'Bearer <token>'");
       return res
         .status(403)
         .send(
@@ -32,27 +33,27 @@ export const postPackageID = async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing AuthenticationToken."
+        );
     }
-    catch (error) {
-      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
-    }
-    const username = (decoded as jwt.JwtPayload).name;
 
-    // Extract the package ID and data from the request body
+    const username = decoded.name;
+
+    // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
     const { ID, Version } = metadata;
     const { Content, URL, JSProgram, Debloat } = data;
 
-    // Validate the request body
+    // Validate request body
     if (!ID || (!Content && !URL)) {
-      return res
-        .status(400)
-        .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
-        );
+      return res.status(400).send("Missing or invalid fields in PackageID.");
     }
 
-    // Load the registry to check for the existing package
+    // Load the registry to check for existing packages
     let registry = {};
     if (fs.existsSync("./registry.json")) {
       const fileContent = fs.readFileSync("./registry.json", "utf8");
@@ -60,18 +61,24 @@ export const postPackageID = async (req, res) => {
     }
 
     // Check if the package exists in the registry
-    const packageEntry = Object.entries(registry).find(([, packages]) =>
-      (packages as any[]).some((entry) => entry.ID === ID)
+    const packageEntry = Object.entries(registry).find(
+      ([, packages]: [string, any[]]) =>
+        packages.some((entry) => entry.ID === ID)
     );
 
     if (!packageEntry) {
       return res.status(404).send("Package does not exist.");
     }
 
-    const [packageName, packageList]: [string, any[]] = packageEntry as [
+    let [packageName, packageList] = packageEntry as [
       string,
-      any[]
+      { ID: string; Version: string; UploadMethod: string; Name: string }[]
     ];
+
+    // Parse packagelist for only packages with matching "Name"
+    packageList = packageList.filter((entry) => entry.Name === packageName);
+    console.log(packageList);
+
     const existingPackage = packageList.find((entry) => entry.ID === ID);
 
     if (!existingPackage) {
@@ -80,24 +87,64 @@ export const postPackageID = async (req, res) => {
 
     const { Name, Version: existingVersion } = existingPackage;
 
-    // Validate if the new version is more recent than the current one
-    if (!Version || Version <= existingVersion) {
+    // Validate version
+    if (!Version) {
       return res
         .status(400)
-        .send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
+        .send("Missing or invalid version field in PackageID.");
     }
 
-    // Generate metadata for the response
+    // Ensure the upload method matches
+    const uploadMethod = Content ? "Upload" : "URL";
+    if (existingPackage.UploadMethod !== uploadMethod) {
+      return res
+        .status(400)
+        .send(
+          "Invalid upload style. Use the same upload style as the previous version."
+        );
+    }
+
+    // Check version against registry versions
+    const versionExists = packageList.some(
+      (entry) => entry.Version === Version
+    );
+    if (versionExists) {
+      return res.status(409).send("Version already exists in registry.");
+    }
+
+    // Compare version numbers
+    const versionComparator = (v1, v2) => {
+      const [major1, minor1, patch1] = v1.split(".").map(Number);
+      const [major2, minor2, patch2] = v2.split(".").map(Number);
+      if (major1 === major2 && minor1 === minor2 && patch1 < patch2) {
+        return -1;
+      }
+      return 0;
+    };
+
+    const invalidVersion = packageList.some(
+      (entry) => versionComparator(Version, entry.Version) < 0
+    );
+
+    if (invalidVersion) {
+      return res
+        .status(400)
+        .send(
+          "New version has a lower patch number than an existing version with the same major and minor."
+        );
+    }
+
+    // Generate metadata for the new version
     const timeUpdated = new Date().toISOString();
-    const response_metadata = {
+    const newMetadata = {
       Name,
-      Version: Version,
-      ID: ID,
+      Version,
+      ID,
       JSProgram,
       TimeUpdated: timeUpdated,
       UsernameUploaded: username,
       Score: {},
-      Cost: -1
+      Cost: -1,
     };
 
     const bucketName = process.env.S3_BUCKET;
@@ -105,40 +152,46 @@ export const postPackageID = async (req, res) => {
       return res.status(500).send("S3 bucket name is not set.");
     }
 
-    // Process new content or URL for the package update
-    const packageKey = `${ID}`;
+    // Handle content or URL upload
+    const packageID = crypto
+      .createHash("sha256")
+      .update(`${Name}-${Version}`)
+      .digest("hex");
+
     if (Content) {
       try {
         const repoURL = await extractRepoURL(Content);
         const rating = await processUrl(repoURL);
-        metadata.Score = rating;
-      }
-      catch {
-        console.log("FAILED to calculate score for package update.")
-        return res.status(400).send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
-      }
+        newMetadata.Score = rating;
 
-      const contentBuffer = Buffer.from(Content, "binary");
-      if (contentBuffer.length === 0) {
-        debug("The uploaded content is empty or invalid.");
+        const contentBuffer = Buffer.from(Content, "binary");
+        if (contentBuffer.length === 0) {
+          debug("The uploaded content is empty or invalid.");
+          return res
+            .status(400)
+            .send("The uploaded content is empty or invalid.");
+        }
+
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: packageID,
+            Body: contentBuffer,
+            ContentType: "application/zip",
+          })
+        );
+      } catch (error) {
+        debug("Failed to calculate score or upload content " + error);
         return res
           .status(400)
-          .send("The uploaded content is empty or invalid.");
+          .send("Error processing content for package update.");
       }
-
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: bucketName,
-          Key: packageKey,
-          Body: contentBuffer,
-          ContentType: "application/zip",
-        })
-      );
     } else if (URL) {
       try {
         const rating = await processUrl(URL);
-        metadata.Score = rating;
+        newMetadata.Score = rating;
         const packageData = await downloadPackageFromURL(URL);
+
         if (!packageData || packageData.length === 0) {
           return res
             .status(400)
@@ -148,20 +201,19 @@ export const postPackageID = async (req, res) => {
         await s3Client.send(
           new PutObjectCommand({
             Bucket: bucketName,
-            Key: packageKey,
+            Key: packageID,
             Body: packageData,
             ContentType: "application/zip",
           })
         );
-      } catch (err) {
-        return res.status(400).send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
+      } catch (error) {
+        debug("Failed to process URL or upload package: " + error);
+        return res.status(400).send("Error processing URL for package update.");
       }
     }
 
-    // Update the registry with the new package metadata
-    registry[Name].push(metadata);
-
-    // Save the updated registry back to the JSON file
+    // Update registry
+    registry[packageName].push(newMetadata);
     fs.writeFileSync(
       "./registry.json",
       JSON.stringify(registry, null, 2),

@@ -101,6 +101,7 @@ export const postPackage = async (req, res) => {
       Cost: -1,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
+      UploadMethod: Content ? "Upload" : "URL",
     };
 
     // Upload the package content or ingest from URL
@@ -203,6 +204,7 @@ export const postPackage = async (req, res) => {
       Version: Version,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
+      UploadMethod: Content ? "Upload" : "URL",
       Score: metadata.Score,
       Cost: metadata.Cost,
     };
