@@ -50,7 +50,11 @@ export const postPackageID = async (req, res) => {
 
     // Validate request body
     if (!ID || (!Content && !URL)) {
-      return res.status(400).send("Missing or invalid fields in PackageID.");
+      return res
+        .status(400)
+        .send(
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+        );
     }
 
     // Load the registry to check for existing packages
@@ -77,7 +81,6 @@ export const postPackageID = async (req, res) => {
 
     // Parse packagelist for only packages with matching "Name"
     packageList = packageList.filter((entry) => entry.Name === packageName);
-    console.log(packageList);
 
     const existingPackage = packageList.find((entry) => entry.ID === ID);
 
@@ -85,7 +88,7 @@ export const postPackageID = async (req, res) => {
       return res.status(404).send("Package does not exist.");
     }
 
-    const { Name, Version: existingVersion } = existingPackage;
+    const { Name } = existingPackage;
 
     // Validate version
     if (!Version) {
@@ -187,8 +190,10 @@ export const postPackageID = async (req, res) => {
       } catch (error) {
         debug("Failed to calculate score or upload content " + error);
         return res
-          .status(500)
-          .send("Error processing content for package update.");
+          .status(400)
+          .send(
+            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          );
       }
     } else if (URL) {
       try {
@@ -199,7 +204,9 @@ export const postPackageID = async (req, res) => {
         if (!packageData || packageData.length === 0) {
           return res
             .status(400)
-            .send("Downloaded package is empty or invalid.");
+            .send(
+              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            );
         }
 
         await s3Client.send(
@@ -212,7 +219,11 @@ export const postPackageID = async (req, res) => {
         );
       } catch (error) {
         debug("Failed to process URL or upload package: " + error);
-        return res.status(500).send("Error processing URL for package update.");
+        return res
+          .status(400)
+          .send(
+            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          );
       }
     }
 
