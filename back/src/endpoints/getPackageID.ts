@@ -23,7 +23,7 @@ export const getPackageID = async (req, res) => {
     if (!authHeader) {
       return res
         .status(403)
-        .send("Authentication failed due to missing Authorization header.");
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
     const token = authHeader.split(" ")[1]; // Extract token after "Bearer "
@@ -37,8 +37,8 @@ export const getPackageID = async (req, res) => {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) {
         return res
-          .status(401)
-          .send("Authentication failed. Invalid or expired token.");
+          .status(403)
+          .send("Authentication failed due to invalid or missing AuthenticationToken.");
       }
 
       // Proceed with the request handling (retrieving package)
@@ -53,7 +53,7 @@ export const getPackageID = async (req, res) => {
       try {
         // check if package ID exists in regCache
         if (!idExists(regCache, packageId)) {
-          return res.status(404).send("Package not found.");
+          return res.status(404).send("Package does not exist.");
         }
       } catch (err) {
         console.error("Error checking package existence:", err);

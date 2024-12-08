@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import {
   S3Client,
   GetObjectCommand,
@@ -5,24 +6,30 @@ import {
 } from "@aws-sdk/client-s3";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const bucketName = process.env.S3_BUCKET;
 
 export const postPackageByRegEx = async (req, res) => {
   try {
-    const authToken = req.header("X-Authorization");
-    const validToken = process.env.AUTH_TOKEN;
-    const bucketName = process.env.S3_BUCKET;
-
-    if (!authToken) {
+    // Validate the JWT from the Authorization header
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
       return res
         .status(403)
-        .send("Authentication failed due to missing AuthenticationToken.");
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
 
-    if (authToken !== validToken) {
+    const token = authHeader.split(" ")[1];
+    if (!token) {
       return res
-        .status(401)
-        .send("You do not have permission to access this registry.");
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const { RegEx } = req.body;
 
@@ -30,7 +37,7 @@ export const postPackageByRegEx = async (req, res) => {
     if (!RegEx || typeof RegEx !== "string") {
       return res
         .status(400)
-        .send("The request is missing a valid RegEx field.");
+        .send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
 
     // Compile the regex
@@ -38,7 +45,7 @@ export const postPackageByRegEx = async (req, res) => {
     try {
       regex = new RegExp(RegEx);
     } catch (error) {
-      return res.status(400).send("The provided RegEx is invalid.");
+      return res.status(400).send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
 
     // List objects in the bucket
@@ -46,7 +53,7 @@ export const postPackageByRegEx = async (req, res) => {
     const listResponse = await s3Client.send(listCommand);
 
     if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      return res.status(404).send("No packages available in the registry.");
+      return res.status(404).send("No package found under this regex.");
     }
 
     // Filter metadata files
@@ -55,7 +62,7 @@ export const postPackageByRegEx = async (req, res) => {
     ).map((object) => object.Key);
 
     if (metadataKeys.length === 0) {
-      return res.status(404).send("No packages available for search.");
+      return res.status(404).send("No package found under this regex.");
     }
 
     // Search using RegEx

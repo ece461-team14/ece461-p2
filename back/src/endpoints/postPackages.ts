@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import fs from "fs";
+import path from "path";
 import jwt from "jsonwebtoken";
+import semver from "semver";
 
-const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const registryFilePath = path.resolve("./registry.json");
 
 export const postPackages = async (req: Request, res: Response) => {
   try {
@@ -15,7 +17,6 @@ export const postPackages = async (req: Request, res: Response) => {
           "Authentication failed due to invalid or missing Authorization header."
         );
     }
-    // console.log("packages/ test");
 
     const token = authHeader.split(" ")[1];
     if (!token) {
@@ -39,7 +40,7 @@ export const postPackages = async (req: Request, res: Response) => {
     }
 
     // Parse the request body
-    const { body: queries } = req;
+    const queries = req.body;
     if (!Array.isArray(queries) || queries.some((q) => typeof q !== "object")) {
       return res
         .status(400)
@@ -47,39 +48,36 @@ export const postPackages = async (req: Request, res: Response) => {
     }
 
     const offset = parseInt(req.header("offset") || "0", 10);
-    const bucketName = process.env.S3_BUCKET;
 
-    if (!bucketName) {
-      return res.status(500).send("S3 bucket name is not set.");
+    // Load registry data from local file
+    let registryData;
+    try {
+      const registryContent = fs.readFileSync(registryFilePath, "utf-8");
+      registryData = JSON.parse(registryContent);
+    } catch (error) {
+      console.error("Error reading registry file:", error);
+      return res.status(500).send("Failed to load registry data.");
     }
 
-    // List objects in the S3 bucket
-    const listCommand = new ListObjectsV2Command({ Bucket: bucketName });
-    const listResponse = await s3Client.send(listCommand);
+    // Filter packages based on queries, including version handling
+    const filteredPackages = Object.entries(registryData).flatMap(
+      ([name, versions]) => {
+        return (versions as any[]).filter((pkg) => {
+          return queries.some((query) => {
+            // if query.name is "*", it matches all names
+            // otherwise it must match the package name
+            const nameMatches = query.Name === "*" || query.Name === name;
 
-    if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      res.setHeader("offset", offset);
-      return res.status(200).json([]);
-    }
+            // Handle version matching with semver
+            const versionMatches = query.version
+              ? semver.satisfies(pkg.Version, query.version)
+              : true;
 
-    // Fetch metadata for all listed objects
-    const metadataList = [];
-    // const metadataList = await fetchPackageMetadata(
-    //   listResponse.Contents,
-    //   bucketName,
-    //   s3Client
-    // );
-
-    // Filter packages based on queries
-    const filteredPackages = metadataList.filter((pkg) => {
-      return queries.some((query) => {
-        const nameMatches = query.name === "*" || pkg.Name === query.name;
-        const versionMatches = query.version
-          ? pkg.Version.VersionNumber === query.version
-          : true;
-        return nameMatches && versionMatches;
-      });
-    });
+            return nameMatches && versionMatches;
+          });
+        });
+      }
+    );
 
     // Enforce a limit on results
     if (filteredPackages.length > 1000) {

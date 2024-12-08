@@ -16,13 +16,13 @@ export const postPackageID = async (req, res) => {
     if (!authToken) {
       return res
         .status(403)
-        .send("Authentication failed due to missing AuthenticationToken.");
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
     if (authToken !== validToken) {
       return res
-        .status(401)
-        .send("You do not have permission to update this package.");
+        .status(403)
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
     const packageId = req.params.id;
@@ -30,7 +30,7 @@ export const postPackageID = async (req, res) => {
 
     // Validation: Ensure required fields are present
     if (!Name || !Version || (!Content && !URL)) {
-      return res.status(400).send("Missing required fields in request body.");
+      return res.status(400).send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
     }
 
     // Check if the package exists by checking the metadata
@@ -77,14 +77,7 @@ export const postPackageID = async (req, res) => {
     );
 
     // Return the updated package info
-    res.status(200).json({
-      metadata,
-      data: {
-        Content: Content,
-        URL: URL,
-        JSProgram,
-      },
-    });
+    res.status(200).send("Version is updated.");
   } catch (error) {
     console.error("Error updating package:", error);
     res.status(500).send("An error occurred while updating the package.");
