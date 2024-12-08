@@ -1,28 +1,37 @@
+import jwt from "jsonwebtoken";
+import fs from "fs";
 import {
   S3Client,
   GetObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { match } from "assert";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const bucketName = process.env.S3_BUCKET;
 
 export const postPackageByRegEx = async (req, res) => {
   try {
-    const authToken = req.header("X-Authorization");
-    const validToken = process.env.AUTH_TOKEN;
-    const bucketName = process.env.S3_BUCKET;
-
-    if (!authToken) {
+    // Validate the JWT from the Authorization header
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
       return res
         .status(403)
-        .send("Authentication failed due to missing AuthenticationToken.");
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
 
-    if (authToken !== validToken) {
+    const token = authHeader.split(" ")[1];
+    if (!token) {
       return res
-        .status(401)
-        .send("You do not have permission to access this registry.");
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
     }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const { RegEx } = req.body;
 
@@ -30,63 +39,36 @@ export const postPackageByRegEx = async (req, res) => {
     if (!RegEx || typeof RegEx !== "string") {
       return res
         .status(400)
-        .send("The request is missing a valid RegEx field.");
+        .send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
 
     // Compile the regex
     let regex;
     try {
-      regex = new RegExp(RegEx);
+      regex = new RegExp(RegEx, "i");
     } catch (error) {
-      return res.status(400).send("The provided RegEx is invalid.");
+      return res.status(400).send("There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid");
     }
 
     // List objects in the bucket
-    const listCommand = new ListObjectsV2Command({ Bucket: bucketName });
-    const listResponse = await s3Client.send(listCommand);
+    const fileContent = fs.readFileSync("./registry.json", "utf8");
+    const registry = JSON.parse(fileContent); // Parse the JSON content into an object
+    let matchedPackages = [];
 
-    if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      return res.status(404).send("No packages available in the registry.");
-    }
-
-    // Filter metadata files
-    const metadataKeys = listResponse.Contents.filter((object) =>
-      object.Key.endsWith("metadata.json")
-    ).map((object) => object.Key);
-
-    if (metadataKeys.length === 0) {
-      return res.status(404).send("No packages available for search.");
-    }
-
-    // Search using RegEx
-    const matchedPackages = [];
-    for (const key of metadataKeys) {
-      try {
-        const metadataResponse = await s3Client.send(
-          new GetObjectCommand({ Bucket: bucketName, Key: key })
-        );
-        const metadataBody = await metadataResponse.Body.transformToString();
-        const metadata = JSON.parse(metadataBody);
-
-        // Check if package matches the RegEx
-        if (
-          regex.test(metadata.Name) ||
-          (metadata.Description && regex.test(metadata.Description))
-        ) {
+    for (const name of Object.keys(registry)) {
+      if (regex.test(name)) {
+        registry[name].forEach(pkg => {
           matchedPackages.push({
-            Name: metadata.Name,
-            Version: metadata.Version,
-            ID: metadata.ID,
+            Version: pkg.Version,
+            Name: pkg.Name,
+            ID: pkg.ID
           });
-        }
-      } catch (err) {
-        console.error(`Error retrieving or parsing metadata for ${key}:`, err);
-        // Continue to the next package
+        });
       }
     }
 
     if (matchedPackages.length === 0) {
-      return res.status(404).send("No package found under this regex.");
+      res.status(404).send("No package found under this regex.");
     }
 
     // Return the matched packages

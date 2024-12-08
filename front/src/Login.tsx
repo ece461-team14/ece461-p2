@@ -1,50 +1,90 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 interface LoginProps {
-  onLogin: () => void; // for successful login
+  onLogin: (token: string) => void;
+  userRegistry: { username: string; password: string }[]; // Add this line
+  onSignupClick: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+const Login: React.FC<LoginProps> = ({ onLogin, onSignupClick }) => {
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    // examples of some things we could have
-    const userRegistry = [
-      { username: "admin", password: "password!" },
-      { username: "user", password: "password" },
-    ];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const validUser = userRegistry.find(
-      (user) => user.username === username && user.password === password
-    );
+    try {
+      const response = await axios.put(
+        "http://localhost:8080/authenticate",
+        {
+          User: {
+            name: username,
+            isAdmin: isAdmin,
+          },
+          Secret: {
+            password: password,
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    if (validUser) {
-      onLogin();
-    } else {
-      setError("Invalid username or password");
+      const token = response.data; // Assuming it returns "bearer token"
+      localStorage.setItem("authToken", token); // Store token in local storage
+
+      onLogin(token); // Mark the user as logged in
+    } catch (err) {
+      setError("Invalid username or password.");
     }
   };
 
   return (
-    <div className="login-container">
+    <div className="login-form">
       <h2>Login</h2>
-      {error && <p className="error">{error}</p>}
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>Login</button>
-      <button onClick={onLogin}>Bypass Login</button>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Username:</label>
+          <input
+            name="testUsername"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            name="testPassword"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>
+            Admin:
+            <input
+              name="testCheckbox"
+              type="checkbox"
+              checked={isAdmin}
+              onChange={(e) => setIsAdmin(e.target.checked)}
+            />
+          </label>
+        </div>
+        <button name="submitButton" type="submit">Login</button>
+        <button name="signupButton" type="button" onClick={onSignupClick}>
+          Go to Signup
+        </button>
+      </form>
+      {error && <p id="error" className="error">{error}</p>}
     </div>
   );
 };

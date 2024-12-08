@@ -1,17 +1,15 @@
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import {
-  User,
-  AuthenticationRequest,
-  AuthenticationToken,
-} from "../types/GitHubFile.js";
+import { info, debug, silent } from "../utils/logger.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-const USERS_FILE = "./users.json";
+const USERS_FILE = "./users.csv";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export const putAuthenticate = async (req, res) => {
   try {
-    const body: AuthenticationRequest = req.body;
+    const body = req.body;
 
     // Validate request body
     if (
@@ -19,6 +17,7 @@ export const putAuthenticate = async (req, res) => {
       !body.User ||
       !body.Secret ||
       !body.User.name ||
+      typeof body.User.isAdmin !== "boolean" ||
       !body.Secret.password
     ) {
       return res
@@ -28,8 +27,8 @@ export const putAuthenticate = async (req, res) => {
         );
     }
 
-    const { name } = body.User;
-    const { password } = body.Secret;
+    const { name, isAdmin } = body.User;
+    const password = body.Secret.password;
 
     // Read the users file
     const userFileData = await fs.readFile(USERS_FILE, "utf-8");
@@ -38,16 +37,20 @@ export const putAuthenticate = async (req, res) => {
       .map((line) => line.trim())
       .filter((line) => line)
       .map((line) => {
-        const [storedName, storedPassword, permLevel] = line.split(",");
+        const [storedName, storedPassword, permLevel, storedIsAdmin] =
+          line.split(",");
         return {
           name: storedName,
           password: storedPassword,
           perm_level: parseInt(permLevel, 10),
+          isAdmin: storedIsAdmin === "true",
         };
-      }) as User[];
+      });
 
     // Check user credentials
-    const user = users.find((u) => u.name === name && u.password === password);
+    const user = users.find(
+      (u) => u.name === name && u.password === password && u.isAdmin === isAdmin
+    );
 
     if (!user) {
       return res.status(401).send("The user or password is invalid.");
@@ -57,15 +60,16 @@ export const putAuthenticate = async (req, res) => {
     const tokenPayload = {
       name: user.name,
       perm_level: user.perm_level,
+      isAdmin: user.isAdmin,
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
 
     // Return the token
-    const response: AuthenticationToken = { token: `bearer ${token}` };
-    return res.status(200).json(response);
+    //const response = { token: `bearer ${token}` };
+    return res.status(200).send(`"bearer ${token}"`);
   } catch (err) {
-    console.error("Error handling /authenticate request:", err);
-    return res.status(501).send("This system does not support authentication.");
+    debug(`Error in putAuthenticate: ${err}`);
+    return res.status(500).send("Internal server error.");
   }
 };

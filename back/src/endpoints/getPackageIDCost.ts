@@ -1,27 +1,32 @@
+import jwt from "jsonwebtoken";
+import * as fs from "fs";
+import AdmZip from "adm-zip";
+import { idExists, getObjFromId } from "../utils/idReg.js";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const getPackageIDCost = async (req, res) => {
   try {
     // Extract and validate the required headers and parameters
-    const authToken = req.header("X-Authorization"); // same as other call
-    const validToken = process.env.AUTH_TOKEN; // same as other call
-    const packageId = req.params.id; // get package id according to spec
     const includeDependency = req.query.dependency === "true"; // for if the cost includes dependencies
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
+      return res.status(403).send("Authentication failed due to invalid or missing Authorization header.");
+    }
 
-    // top add in again when not just testing
-    // if (!authToken) {                                     // same as previous api structure
-    //   return res
-    //     .status(403)
-    //     .send("Authentication failed due to invalid or missing AuthenticationToken.");
-    // }
-    // if (authToken !== validToken) {                       // same as previous api structure (but for costs)
-    //   return res
-    //     .status(401)
-    //     .send("You do not have permission to access package costs.");
-    // }
-    // bottom add back in when not just testing
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res
+        .status(403)
+        .send("Token format is incorrect. Use 'Bearer <token>'");
+    }
 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Token payload:", decoded);
+
+    // Get Package ID
+    const packageId = req.params.id; // get package id according to spec
+    console.log("package id: ", packageId);
     if (!packageId) {
       // new because we need package ID acessible to get cost
       return res
@@ -34,33 +39,37 @@ export const getPackageIDCost = async (req, res) => {
       return res.status(500).send("S3 bucket name is not set.");
     }
 
-    const metadataKey = `${packageId}/metadata.json`; // retrieve metadata
-    let packageMetadata;
+    const regCache = JSON.parse(fs.readFileSync("registry.json", "utf-8"));
+
+    // Check package existence using package ID
     try {
-      const metadataResponse = await s3Client.send(
-        new GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
-      );
-      const metadataBody = await metadataResponse.Body.transformToString();
-      packageMetadata = JSON.parse(metadataBody);
-    } catch (err) {
-      if (err.name === "NoSuchKey") {
-        return res.status(404).send("Package does not exist.");
+      // check if package ID exists in regCache
+      if (!idExists(regCache, packageId)) {
+        return res.status(404).send("Package not found.");
       }
-      console.error("Error retrieving package metadata:", err);
+    } catch (err) {
+      console.error("Error checking package existence:", err);
       return res.status(500).send("Error retrieving package metadata.");
     }
 
     // get the costs from the data
+    let packageData;
     const calculateTotalCost = async (id) => {
-      const metadataKey = `${id}/metadata.json`;
       try {
-        const metadataResponse = await s3Client.send(
-          new GetObjectCommand({ Bucket: bucketName, Key: metadataKey })
+        // Get the package content
+        const packageKey = `${packageId}`;
+        const packageResponse = await s3Client.send(
+          new GetObjectCommand({
+            Bucket: bucketName,
+            Key: packageKey,
+          })
         );
-        const metadataBody = await metadataResponse.Body.transformToString();
-        const packageData = JSON.parse(metadataBody);
+        const packageBody = await packageResponse.Body.transformToString();
+        packageData = extractJsonFromZip(packageBody);
+        console.log(packageData.files);
 
         let totalCost = packageData.standaloneCost || 0;
+        console.log(packageData.standaloneCost);
         if (includeDependency && packageData.dependencies) {
           for (const depId of packageData.dependencies) {
             const depCost = await calculateTotalCost(depId);
@@ -69,7 +78,6 @@ export const getPackageIDCost = async (req, res) => {
         }
         return {
           standaloneCost: packageData.standaloneCost || 0,
-
           totalCost,
         };
       } catch (err) {
@@ -85,7 +93,7 @@ export const getPackageIDCost = async (req, res) => {
       const response = includeDependency
         ? {
             [packageId]: cost,
-            ...(packageMetadata.dependencies || []).reduce(
+            ...(packageData.dependencies || []).reduce(
               async (accPromise, depId) => {
                 const acc = await accPromise;
                 const depCost = await calculateTotalCost(depId); // we calculate the cost for each dependency
@@ -110,5 +118,38 @@ export const getPackageIDCost = async (req, res) => {
   } catch (error) {
     console.error("Error handling /package/:id/cost request:", error);
     res.status(500).send("An error occurred while processing the request."); // to cover the whole api structure as an error
+  }
+};
+
+/**
+ * Extracts JSON content from a ZIP file.
+ * 
+ * @param base64Data - The Base64-encoded string representing the ZIP file.
+ * @returns The parsed JSON object from the first `.json` file in the ZIP.
+ * @throws Error if no JSON file is found or the data cannot be parsed.
+ */
+const extractJsonFromZip = (base64Data: string): any => {
+  try {
+    // Decode Base64 string to binary
+    const binaryData = Buffer.from(base64Data, "base64");
+
+    // Initialize ZIP handler
+    const zip = new AdmZip(binaryData);
+
+    // Get all entries in the ZIP archive
+    const zipEntries = zip.getEntries();
+
+    // Look for the first JSON file and extract its content
+    for (const entry of zipEntries) {
+      if (entry.entryName.endsWith(".json")) {
+        const jsonContent = entry.getData().toString("utf8");
+        return JSON.parse(jsonContent); // Parse and return the JSON
+      }
+    }
+
+    throw new Error("No JSON file found in the ZIP archive.");
+  } catch (err) {
+    console.error("Error extracting JSON from ZIP:", err);
+    throw err;
   }
 };

@@ -24,7 +24,8 @@
         "best": "node autograder.js best",
         "last": "node autograder.js last",
         "log": "node autograder.js log",
-        "test:selenium": "node front/src/seleniumTest.js"
+        "abort": "node autograder.js abort",
+        "stat": "node autograder.js stat"
     },
     "keywords": [],
     "author": "",
@@ -55,13 +56,16 @@
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.688.0",
+        "@types/adm-zip": "^0.5.7",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
+        "adm-zip": "^0.5.16",
         "axios": "^1.7.8",
         "chromedriver": "^131.0.2",
         "commander": "^12.1.0",
         "cors": "^2.8.5",
         "express": "^4.21.1",
+        "firebase-functions": "^6.1.1",
         "fs-extra": "^11.2.0",
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",

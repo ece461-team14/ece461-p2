@@ -37,5 +37,11 @@ Thumbs.db
 # .env file
 .env
 
-# Users database
-users.json
+# database files
+users.csv
+registry.json
+
+# Jackson Testing Files
+a.json
+auth.txt
+test_commands.txt

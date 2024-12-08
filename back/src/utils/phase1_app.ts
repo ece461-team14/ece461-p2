@@ -9,25 +9,25 @@ export async function processUrl(url: string) {
     const score = await ms.netScore(url);
     const netScoreLatency = Date.now() - startTime; // overall Netscore Latency
 
-    await info(`Processed URL: ${url}, Score: ${score}`);
+    await info(`Processed URL: ${url}, Score: ${score.NetScore}`);
     let ret = {
-      URL: url,
-      NetScore: score.NetScore,
-      RampUp: score.RampUp,
-      Correctness: score.Correctness,
+      // URL: url,
       BusFactor: score.BusFactor,
+      BusFactorLatency: score.BusFactor_Latency,
+      Correctness: score.Correctness,
+      CorrectnessLatency: score.Correctness_Latency,
+      RampUp: score.RampUp,
+      RampUpLatency: score.RampUp_Latency,
       ResponsiveMaintainer: score.ResponsiveMaintainer,
-      License: score.License,
-      Dependency: score.Dependency,
-      Review: score.Review,
-      NetScore_Latency: netScoreLatency,
-      RampUp_Latency: score.RampUp_Latency,
-      Correctness_Latency: score.Correctness_Latency,
-      BusFactor_Latency: score.BusFactor_Latency,
-      ResponsiveMaintainer_Latency: score.ResponsiveMaintainer_Latency,
-      License_Latency: score.License_Latency,
-      Dependency_Latency: score.License_Latency,
-      Review_Latency: score.License_Latency,
+      ResponsiveMaintainerLatency: score.ResponsiveMaintainer_Latency,
+      LicenseScore: score.License,
+      LicenseScoreLatency: score.License_Latency,
+      GoodPinningPractice: score.Dependency,
+      GoodPinningPracticeLatency: score.License_Latency,
+      PullRequest: score.Review,
+      PullRequestLatency: score.License_Latency,
+      NetScore: score.NetScore,
+      NetScoreLatency: netScoreLatency,
     };
     return ret;
   } catch (err) {
@@ -77,9 +77,9 @@ export async function main(testFile?: string) {
 }
 
 // Only call main if this file is being run directly outside of Jasmine
-if (
-  !process.argv[1].endsWith("jasmine.js") &&
-  !process.argv[1].endsWith("jasmine")
-) {
-  main();
-}
+// if (
+//   !process.argv[1].endsWith("jasmine.js") &&
+//   !process.argv[1].endsWith("jasmine")
+// ) {
+//   main();
+// }

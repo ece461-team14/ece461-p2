@@ -1,66 +1,83 @@
 import { Request, Response } from "express";
-import {
-  S3Client,
-  ListObjectsV2Command,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { validateAuthToken } from "../utils/authUtils.js";
-import { fetchPackageMetadata } from "../utils/s3Utils.js";
+import fs from "fs";
+import path from "path";
+import jwt from "jsonwebtoken";
+import semver from "semver";
 
-const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const registryFilePath = path.resolve("./registry.json");
 
 export const postPackages = async (req: Request, res: Response) => {
   try {
-    // Validate the auth token
-    const authToken = req.header("X-Authorization");
-    if (!validateAuthToken(authToken)) {
+    // Validate the JWT from the Authorization header
+    const authHeader = req.header("X-Authorization");
+    if (!authHeader) {
       return res
         .status(403)
         .send(
-          "Authentication failed due to invalid or missing AuthenticationToken."
+          "Authentication failed due to invalid or missing Authorization header."
         );
     }
 
-    const { body: queries } = req;
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res
+        .status(403)
+        .send(
+          "Authentication failed due to invalid or missing Authorization header."
+        );
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // console.log("Token payload:", decoded);
+
+    let user;
+    try {
+      user = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res
+        .status(403)
+        .send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
+
+    // Parse the request body
+    const queries = req.body;
     if (!Array.isArray(queries) || queries.some((q) => typeof q !== "object")) {
       return res
         .status(400)
-        .send("Invalid PackageQuery array in request body.");
+        .send("There is missing field(s) in the PackageQuery or it is formed improperly, or is invalid.");
     }
 
     const offset = parseInt(req.header("offset") || "0", 10);
-    const bucketName = process.env.S3_BUCKET;
 
-    if (!bucketName) {
-      return res.status(500).send("S3 bucket name is not set.");
+    // Load registry data from local file
+    let registryData;
+    try {
+      const registryContent = fs.readFileSync(registryFilePath, "utf-8");
+      registryData = JSON.parse(registryContent);
+    } catch (error) {
+      console.error("Error reading registry file:", error);
+      return res.status(500).send("Failed to load registry data.");
     }
 
-    // List objects in the bucket
-    const listCommand = new ListObjectsV2Command({ Bucket: bucketName });
-    const listResponse = await s3Client.send(listCommand);
+    // Filter packages based on queries, including version handling
+    const filteredPackages = Object.entries(registryData).flatMap(
+      ([name, versions]) => {
+        return (versions as any[]).filter((pkg) => {
+          return queries.some((query) => {
+            // if query.name is "*", it matches all names
+            // otherwise it must match the package name
+            const nameMatches = query.Name === "*" || query.Name === name;
 
-    if (!listResponse.Contents || listResponse.Contents.length === 0) {
-      res.setHeader("offset", offset);
-      return res.status(200).json([]);
-    }
+            // Handle version matching with semver
+            const versionMatches = query.version
+              ? semver.satisfies(pkg.Version, query.version)
+              : true;
 
-    // Fetch metadata
-    const metadataList = await fetchPackageMetadata(
-      listResponse.Contents,
-      bucketName,
-      s3Client
+            return nameMatches && versionMatches;
+          });
+        });
+      }
     );
-
-    // Filter packages based on queries
-    const filteredPackages = metadataList.filter((pkg) => {
-      return queries.some((query) => {
-        const nameMatches = query.name === "*" || pkg.Name === query.name;
-        const versionMatches = query.version
-          ? pkg.Version.VersionNumber === query.version
-          : true;
-        return nameMatches && versionMatches;
-      });
-    });
 
     // Enforce a limit on results
     if (filteredPackages.length > 1000) {
