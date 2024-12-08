@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { processUrl } from "../utils/phase1_app.js";
+import { executeJsOnZip } from "../utils/runJSProgram.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { downloadPackageFromURL, extractRepoURL } from "../utils/getPackage.js";
@@ -123,7 +124,6 @@ export const postPackage = async (req, res) => {
             .send("Package is not uploaded due to the disqualified rating.");
         }
         metadata.Score = rating;
-        // TODO: Probably want to save the repo URL in the metadata
       } catch (err) {
         console.error("Error handling /package request:", err);
         res
@@ -141,6 +141,15 @@ export const postPackage = async (req, res) => {
         return res
           .status(400)
           .send("The uploaded content is empty or invalid.");
+      }
+
+      if (JSProgram) {
+        const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+        if (programResponse === 1) {
+          return res
+            .status(406)
+            .send("Package has failed sensitive module check.");
+        }
       }
 
       await s3Client.send(
@@ -180,6 +189,15 @@ export const postPackage = async (req, res) => {
       }
 
       Content = packageData.toString("base64");
+
+      if (JSProgram) {
+        const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+        if (programResponse === 1) {
+          return res
+            .status(406)
+            .send("Package has failed sensitive module check.");
+        }
+      }
 
       await s3Client.send(
         new PutObjectCommand({

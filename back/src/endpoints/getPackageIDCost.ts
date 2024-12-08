@@ -72,6 +72,8 @@ export const getPackageIDCost = async (req, res) => {
         else {
           packageData = Buffer.from(packageBody, 'binary');
         }
+        const standaloneCost = getExtractedSize(packageData);
+        console.log(standaloneCost);
         console.log(packageData.length / (1024 * 1024));
         return {
           standaloneCost: packageData.length / (1024 * 1024),
@@ -104,6 +106,24 @@ export const getPackageIDCost = async (req, res) => {
     res.status(500).send("An error occurred while processing the request."); // to cover the whole api structure as an error
   }
 };
+
+/**
+ * Get the total size of files in a base64 encoded zip archive.
+ * @param base64Zip - The base64 encoded zip file as a string.
+ * @returns The total size of the extracted files in bytes.
+ */
+function getExtractedSize(zipBuffer: Buffer): number {
+  const zip = new AdmZip(zipBuffer);
+
+  let totalSize = 0;
+  zip.getEntries().forEach(entry => {
+    if (!entry.isDirectory) {
+      totalSize += entry.header.size; // Entry's uncompressed size
+    }
+  });
+
+  return totalSize / (1024 * 1024);
+}
 
 /**
  * Extracts JSON content from a ZIP file.

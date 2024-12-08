@@ -108,21 +108,21 @@ export async function netScore(url: string): Promise<any> {
   ]);
 
   // store weights
-  let w_b = 0.2;
-  let w_c = 0.25;
-  let w_r = 0.15;
-  let w_rm = 0.3;
-  let w_l = 0.1;
+  let weight_busFactor = 0.2;
+  let weight_correctness = 0.25;
+  let weight_rampUp = 0.15;
+  let weight_responsiveMaintainer = 0.3;
+  let weight_license = 0.1;
   let weight_dependency = 0.1;
   let weight_review = 0.1;
 
   // calculate score
   let netScore: number =
-    w_b * BusFactor.score +
-    w_c * Correctness.score +
-    w_r * RampUp.score +
-    w_rm * ResponsiveMaintainer.score +
-    w_l * License.score +
+    weight_busFactor * BusFactor.score +
+    weight_correctness * Correctness.score +
+    weight_rampUp * RampUp.score +
+    weight_responsiveMaintainer * ResponsiveMaintainer.score +
+    weight_license * License.score +
     weight_dependency * Dependency.score +
     weight_review * Review.score;
   netScore = parseFloat(netScore.toFixed(2));
