@@ -35,7 +35,9 @@ jobs:
           node-version: "18.19.1"
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm rebuild re2
+          npm install
 
       - name: Build application
         run: |
