@@ -32,11 +32,10 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: "18.19.1"
+          node-version: "20"
 
       - name: Install dependencies
         run: |
-          nvm use 18.19.1
           npm version
           npm install
           npm rebuild re2
