@@ -9,6 +9,7 @@ const baseUrl = "http://dl-berlin.ecn.purdue.edu:8000";
 function printReadableScore(data) {
   console.log("Scores:");
   let summary;
+
   for (const [group, tests] of Object.entries(data)) {
     if (typeof tests === "object" && tests !== null) {
       console.log(`\n${group}:`);
@@ -21,7 +22,7 @@ function printReadableScore(data) {
       // Print other tests
       for (const [test, score] of otherTests) {
         const status = score === 0 ? "FAIL" : "PASS";
-        const color = score === 0 ? "\x1b[31m" : "\x1b[32m";
+        const color = score === 0 ? "\x1b[31m" : "\x1b[32m"; // Red for fail, green for pass
         console.log(`  ${test}: ${color}${status}\x1b[0m`);
       }
 
@@ -36,18 +37,23 @@ function printReadableScore(data) {
       console.log(`${group}: ${tests}`);
     }
   }
-  if (summary) {
-    // scrape score out of summary "Total: X / 69"
-    let score = summary.match(/Total: (\d+) \/ 69/)[1];
 
-    // if score is less than 35, print in red,
-    // if less than 52, print in yellow
-    // else print in green
-    const color =
-      score < 35 ? "\x1b[31m" : score < 52 ? "\x1b[33m" : "\x1b[32m";
-    console.log(`${color}${summary}\x1b[0m`);
+  if (summary) {
+    // Extract the numeric score from the summary string
+    const match = summary.match(/Total: (\d+) \/ \d+/);
+    if (match) {
+      const score = parseInt(match[1], 10);
+
+      // Determine color based on the score thresholds
+      const color =
+        score < 35 ? "\x1b[31m" : score < 52 ? "\x1b[33m" : "\x1b[32m"; // Red, Yellow, Green
+      console.log(`${color}${summary}\x1b[0m`);
+    } else {
+      console.error("Error: Unable to parse summary score.");
+    }
   }
 }
+
 
 async function scheduleRun() {
   try {
