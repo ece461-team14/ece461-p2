@@ -11,6 +11,7 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const RATING_THRESHOLD = 0.2;
 
 export const postPackageID = async (req, res) => {
+  console.log("HANDLING /update PACKAGE REQUEST");
   try {
     // Extract token from the X-Authorization header
     const authHeader = req.header("X-Authorization");
