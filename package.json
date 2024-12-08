@@ -67,6 +67,7 @@
         "fs-extra": "^11.2.0",
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",
+        "node-gyp": "^11.0.0",
         "re2": "^1.21.4",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
