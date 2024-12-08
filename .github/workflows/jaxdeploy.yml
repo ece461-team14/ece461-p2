@@ -36,8 +36,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          nvm use 18.19.1
           npm version
           npm install
+          npm rebuild re2
 
       - name: Build application
         run: |
