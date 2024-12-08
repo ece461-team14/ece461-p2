@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { processUrl } from "../utils/phase1_app.js";
 import { info, debug, silent } from "../utils/logger.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
@@ -40,14 +41,14 @@ export const postPackageID = async (req, res) => {
     // Extract the package ID and data from the request body
     const { metadata, data } = req.body;
     const { ID, Version } = metadata;
-    const { Content, URL, JSProgram } = data;
+    const { Content, URL, JSProgram, Debloat } = data;
 
     // Validate the request body
     if (!ID || (!Content && !URL)) {
       return res
         .status(400)
         .send(
-          "Missing field(s) or improper request body (e.g., both Content and URL are set)."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -64,7 +65,7 @@ export const postPackageID = async (req, res) => {
     );
 
     if (!packageEntry) {
-      return res.status(404).send("Package with the given ID does not exist.");
+      return res.status(404).send("Package does not exist.");
     }
 
     const [packageName, packageList]: [string, any[]] = packageEntry as [
@@ -74,7 +75,7 @@ export const postPackageID = async (req, res) => {
     const existingPackage = packageList.find((entry) => entry.ID === ID);
 
     if (!existingPackage) {
-      return res.status(404).send("Package with the given ID does not exist.");
+      return res.status(404).send("Package does not exist.");
     }
 
     const { Name, Version: existingVersion } = existingPackage;
@@ -83,7 +84,7 @@ export const postPackageID = async (req, res) => {
     if (!Version || Version <= existingVersion) {
       return res
         .status(400)
-        .send("New version must be greater than the existing version.");
+        .send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
     }
 
     // Generate metadata for the response
@@ -95,6 +96,8 @@ export const postPackageID = async (req, res) => {
       JSProgram,
       TimeUpdated: timeUpdated,
       UsernameUploaded: username,
+      Score: {},
+      Cost: -1
     };
 
     const bucketName = process.env.S3_BUCKET;
@@ -105,6 +108,16 @@ export const postPackageID = async (req, res) => {
     // Process new content or URL for the package update
     const packageKey = `${ID}`;
     if (Content) {
+      try {
+        const repoURL = await extractRepoURL(Content);
+        const rating = await processUrl(repoURL);
+        metadata.Score = rating;
+      }
+      catch {
+        console.log("FAILED to calculate score for package update.")
+        return res.status(400).send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
+      }
+
       const contentBuffer = Buffer.from(Content, "binary");
       if (contentBuffer.length === 0) {
         debug("The uploaded content is empty or invalid.");
@@ -123,6 +136,8 @@ export const postPackageID = async (req, res) => {
       );
     } else if (URL) {
       try {
+        const rating = await processUrl(URL);
+        metadata.Score = rating;
         const packageData = await downloadPackageFromURL(URL);
         if (!packageData || packageData.length === 0) {
           return res
@@ -139,20 +154,12 @@ export const postPackageID = async (req, res) => {
           })
         );
       } catch (err) {
-        return res.status(500).send("Error downloading package from URL.");
+        return res.status(400).send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
       }
     }
 
     // Update the registry with the new package metadata
-    const updatedPackageIndex = packageList.findIndex(
-      (entry) => entry.ID === ID
-    );
-    if (updatedPackageIndex >= 0) {
-      packageList[updatedPackageIndex] = {
-        ...packageList[updatedPackageIndex],
-        ...response_metadata,
-      };
-    }
+    registry[Name].push(metadata);
 
     // Save the updated registry back to the JSON file
     fs.writeFileSync(
@@ -160,13 +167,6 @@ export const postPackageID = async (req, res) => {
       JSON.stringify(registry, null, 2),
       "utf8"
     );
-
-    // Respond with the updated package information
-    const response_data = {
-      ...(Content !== undefined && { Content }),
-      ...(URL !== undefined && { URL }),
-      ...(JSProgram !== undefined && { JSProgram }),
-    };
 
     res.status(200).send("Version is updated.");
   } catch (error) {
