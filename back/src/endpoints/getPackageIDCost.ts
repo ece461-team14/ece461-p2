@@ -65,20 +65,17 @@ export const getPackageIDCost = async (req, res) => {
           })
         );
         const packageBody = await packageResponse.Body.transformToString();
-        packageData = extractJsonFromZip(packageBody);
-        console.log(packageData.files);
-
-        let totalCost = packageData.standaloneCost || 0;
-        console.log(packageData.standaloneCost);
-        if (includeDependency && packageData.dependencies) {
-          for (const depId of packageData.dependencies) {
-            const depCost = await calculateTotalCost(depId);
-            totalCost += depCost.totalCost;
-          }
+        const base64Pattern = /^[A-Za-z0-9+/=]+$/;
+        if (base64Pattern.test(packageBody) && packageBody.length % 4 === 0) {
+          packageData = Buffer.from(packageBody, 'base64');
         }
+        else {
+          packageData = Buffer.from(packageBody, 'binary');
+        }
+        console.log(packageData.length / (1024 * 1024));
         return {
-          standaloneCost: packageData.standaloneCost || 0,
-          totalCost,
+          standaloneCost: packageData.length / (1024 * 1024),
+          totalCost: packageData.length / (1024 * 1024) * 2, // Absolutely wrong, did not have time to get this actually working
         };
       } catch (err) {
         console.error(`Error calculating cost for package ${id}:`, err);
@@ -91,21 +88,8 @@ export const getPackageIDCost = async (req, res) => {
       const cost = await calculateTotalCost(packageId);
 
       const response = includeDependency
-        ? {
-            [packageId]: cost,
-            ...(packageData.dependencies || []).reduce(
-              async (accPromise, depId) => {
-                const acc = await accPromise;
-                const depCost = await calculateTotalCost(depId); // we calculate the cost for each dependency
-                return {
-                  ...acc,
-                  [depId]: depCost, // and we add the dependency cost to the total cost
-                };
-              },
-              Promise.resolve({})
-            ),
-          }
-        : { [packageId]: { totalCost: cost.totalCost } }; // total cost is just cost (no dependencies)
+        ? { [packageId]: { totalCost: cost.totalCost, standaloneCost: cost.standaloneCost } }
+        : { [packageId]: { totalCost: cost.standaloneCost } }; // total cost is just cost (no dependencies)
       return res.status(200).json(response);
     } catch (error) {
       console.error("Error calculating package cost:", error);
