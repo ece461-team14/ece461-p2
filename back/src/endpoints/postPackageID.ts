@@ -7,7 +7,7 @@ import fs from "fs";
 import { extractRepoURL, downloadPackageFromURL } from "../utils/getPackage.js";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const RATING_THRESHOLD = 0.4;
+const RATING_THRESHOLD = 0.2;
 
 export const postPackageID = async (req, res) => {
   try {
@@ -91,7 +91,9 @@ export const postPackageID = async (req, res) => {
     if (!Version) {
       return res
         .status(400)
-        .send("Missing or invalid version field in PackageID.");
+        .send(
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+        );
     }
 
     // Ensure the upload method matches
@@ -100,7 +102,7 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "Invalid upload style. Use the same upload style as the previous version."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -130,7 +132,7 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "New version has a lower patch number than an existing version with the same major and minor."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -169,7 +171,9 @@ export const postPackageID = async (req, res) => {
           debug("The uploaded content is empty or invalid.");
           return res
             .status(400)
-            .send("The uploaded content is empty or invalid.");
+            .send(
+              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            );
         }
 
         await s3Client.send(
@@ -183,7 +187,7 @@ export const postPackageID = async (req, res) => {
       } catch (error) {
         debug("Failed to calculate score or upload content " + error);
         return res
-          .status(400)
+          .status(500)
           .send("Error processing content for package update.");
       }
     } else if (URL) {
@@ -208,7 +212,7 @@ export const postPackageID = async (req, res) => {
         );
       } catch (error) {
         debug("Failed to process URL or upload package: " + error);
-        return res.status(400).send("Error processing URL for package update.");
+        return res.status(500).send("Error processing URL for package update.");
       }
     }
 

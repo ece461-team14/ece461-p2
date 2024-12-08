@@ -7,7 +7,7 @@ import { downloadPackageFromURL, extractRepoURL } from "../utils/getPackage.js";
 import fs from "fs";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const RATING_THRESHOLD = 0.4;
+const RATING_THRESHOLD = 0.2;
 
 export const postPackage = async (req, res) => {
   try {
