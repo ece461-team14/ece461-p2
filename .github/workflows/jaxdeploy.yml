@@ -36,13 +36,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm rebuild
+          npm version
           npm install
 
       - name: Build application
         run: |
           REACT_APP_API_URL='http://34.199.154.104:8080/' npm run build
-          node --version
 
       - name: Prepare production artifacts
         run: |
