@@ -30,7 +30,7 @@ const App: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Authorization": "your_auth_token", // actual token
+          "X-Authorization": "ECE461", // actual token
           offset: "0",
         },
         body: JSON.stringify([{ name: "*", version: undefined }]),

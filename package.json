@@ -24,7 +24,7 @@
         "best": "node autograder.js best",
         "last": "node autograder.js last",
         "log": "node autograder.js log",
-        "test:selenium": "node src/seleniumTest.js"
+        "test:selenium": "node front/src/seleniumTest.js"
     },
     "keywords": [],
     "author": "",
