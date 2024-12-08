@@ -391,22 +391,22 @@ const App: React.FC = () => {
               />
               {loading && <p>Loading...</p>}
               <ul>
-                {filteredFiles.length > 0 ? (
-                  filteredFiles.map((file) => (
-                    <li key={file.ID}>
-                      <input
-                        type="radio"
-                        name="package"
-                        value={file.ID}
-                        checked={selectedPackageId === file.ID}
-                        onChange={() => setSelectedPackageId(file.ID)}
-                      />
-                      {file.Name} - Version: {file.Version.VersionNumber}
-                    </li>
-                  ))
-                ) : (
-                  <li>No matches</li>
-                )}
+              {filteredFiles.length > 0 ? (
+                filteredFiles.map((file) => (
+                  <li key={file.ID}>
+                    <input
+                      type="radio"
+                      name="package"
+                      value={file.ID}
+                      checked={selectedPackageId === file.ID}
+                      onChange={() => setSelectedPackageId(file.ID)}
+                    />
+                    {file.Name} - Version: {typeof file.Version === "string" ? file.Version : file.Version.VersionNumber}
+                  </li>
+                ))
+              ) : (
+                <li>No matches</li>
+              )}
               </ul>
               <button onClick={fetchFiles} disabled={loading}>
                 Refresh List
