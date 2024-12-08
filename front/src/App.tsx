@@ -27,6 +27,8 @@ const App: React.FC = () => {
   const [showReauthButton, setShowReauthButton] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
 
   const fetchFiles = useCallback(async () => {
@@ -83,6 +85,10 @@ const App: React.FC = () => {
   const handleSignupToggle = () => {
     setShowSignup((prev) => !prev);
   };
+
+  const filteredFiles = files.filter((file) =>
+    file.Name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const authenticate = async (username: string, password: string, isAdmin: boolean): Promise<string> => {
     try {
@@ -171,6 +177,42 @@ const App: React.FC = () => {
       } else {
         setError("An unknown error occurred.");
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!selectedPackageId) {
+      return;
+    }
+  
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      const response = await axios.get(`${apiUrl}/package/${selectedPackageId}`, {
+        headers: {
+          "X-Authorization": `Bearer ${cleanToken}`,
+        },
+      });
+  
+      const { metadata, data } = response.data;
+      const base64Content = data.Content;
+  
+      // Convert base64 content to a blob and trigger download
+      const byteArray = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+      const blob = new Blob([byteArray], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = metadata.Name + ".zip"; // Download as zip file
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      setError("Error downloading package: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -317,20 +359,43 @@ const App: React.FC = () => {
                 </div>
               )}
             </section>
-
             <section className="right-section">
               <h2>Available Packages</h2>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search packages..."
+              />
               {loading && <p>Loading...</p>}
               <ul>
-                {files.map((file) => (
-                  <li key={file.ID}>
-                    {file.Name} - Version: {file.Version.VersionNumber}
-                  </li>
-                ))}
+                {filteredFiles.length > 0 ? (
+                  filteredFiles.map((file) => (
+                    <li key={file.ID}>
+                      <input
+                        type="radio"
+                        name="package"
+                        value={file.ID}
+                        checked={selectedPackageId === file.ID}
+                        onChange={() => setSelectedPackageId(file.ID)}
+                      />
+                      {file.Name} - Version: {file.Version.VersionNumber}
+                    </li>
+                  ))
+                ) : (
+                  <li>No matches</li>
+                )}
               </ul>
               <button onClick={fetchFiles} disabled={loading}>
                 Refresh List
               </button>
+
+              {/* Download Button */}
+              {selectedPackageId && (
+                <button onClick={handleDownload} disabled={loading}>
+                  Download Package
+                </button>
+              )}
             </section>
           </div>
           {showReauthButton && (
