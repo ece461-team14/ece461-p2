@@ -30,6 +30,11 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); 
+  const [packageCost, setPackageCost] = useState<any>(null); 
+  const [name, setName] = useState<string>(""); // Package name
+  const [version, setVersion] = useState<string>(""); // Package version
+  const [jsProgram, setJsProgram] = useState<string>(""); // Optional JS program
+  const [debloat, setDebloat] = useState<boolean>(false);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -147,38 +152,102 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUrlSubmit = async () => {
+  try {
+    if (!url || !name || !version) {
+      console.error("Name, Version, and URL are required.");
+      return;
+    }
+
+    const token = localStorage.getItem("authToken");
+    const cleanToken = token?.replace(/^Bearer\s+/i, '');
+
+    if (!cleanToken) {
+      console.error("Authorization token is missing or invalid.");
+      return;
+    }
+
+    const packageData = {
+      Name: name,
+      Version: version,
+      URL: url,
+      JSProgram: jsProgram || `
+        if (process.argv.length === 7) {
+          console.log('Success');
+          process.exit(0);
+        } else {
+          console.log('Failed');
+          process.exit(1);
+        }
+      `,
+      debloat,
+    };
+
+    console.log("Sending package data:", packageData);
+
+    const response = await fetch(`${apiUrl}/package`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Authorization": `Bearer ${cleanToken}`,
+      },
+      body: JSON.stringify(packageData),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Package uploaded successfully:", result);
+    } else {
+      const errorText = await response.text();
+      console.error("Error uploading package:", errorText);
+    }
+  } catch (error) {
+    console.error("Error submitting the package:", error);
+  }
+};
+
   const handleUpload = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Upload files to the server (S3 bucket)
+    const urlToSubmit = url.trim();
+    if (urlToSubmit) {
+      // If URL is provided, handle URL submission
+      try {
+        await handleUrlSubmit();
+        console.log("URL submission successful");
+      } catch (error) {
+        console.error("Error submitting URL:", error);
+      }
+    } else {
+      // If no URL is provided, handle file upload
       const formData = new FormData();
-      filesToUpload.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      const response = await fetch(`${apiUrl}/upload`, {
-        method: "POST",
-        headers: { "X-Authorization": "your_auth_token" },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, "");
+  
+      if (filesToUpload.length === 0) {
+        console.error("No files to upload.");
+        return;
       }
-
-      // Refresh the list of available packages after uploading
-      await fetchFiles();
-      setFilesToUpload([]); // Clear the files to upload
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(`Error uploading files: ${error.message}`);
-      } else {
-        setError("An unknown error occurred.");
+  
+      formData.append("file", filesToUpload[0]); // Assuming `filesToUpload[0]` is your file object
+  
+      // Send the file upload request
+      try {
+        const response = await fetch(`${apiUrl}/package`, {
+          method: "POST",
+          headers: {
+            "X-Authorization": `Bearer ${cleanToken}`,
+          },
+          body: formData,
+        });
+  
+        const result = await response.json();
+        if (response.ok) {
+          console.log("File uploaded successfully", result);
+        } else {
+          console.error("Error uploading file", result);
+        }
+      } catch (error) {
+        console.error("Error uploading file:", error);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -196,18 +265,17 @@ const App: React.FC = () => {
         headers: {
           "X-Authorization": `Bearer ${cleanToken}`,
         },
+        responseType: 'arraybuffer' // Fetch binary data (zip)
       });
   
-      const { metadata, data } = response.data;
-      const base64Content = data.Content;
-  
-      // Convert base64 content to a blob and trigger download
-      const byteArray = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-      const blob = new Blob([byteArray], { type: "application/zip" });
+      const base64Content = response.data; // Assuming the server returns the binary content as a buffer
+      
+      // Convert buffer to a Blob
+      const blob = new Blob([base64Content], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = metadata.Name + ".zip"; // Download as zip file
+      link.download = `${response.data.metadata.Name}.zip`; // Download as zip file
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -218,40 +286,24 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUrlSubmit = async () => {
-    if (url) {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${apiUrl}/fetchZip`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Authorization": "your_auth_token", // actual token
-          },
-          body: JSON.stringify({ url }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ZIP from URL`);
-        }
-
-        const zipBlob = await response.blob();
-        const zipFile = new Blob([zipBlob], { type: "application/zip" });
-        const zipURL = URL.createObjectURL(zipFile);
-        const link = document.createElement("a");
-        link.href = zipURL;
-        link.download = "downloaded_package.zip";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (error) {
-        setError(`Error fetching ZIP from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      } finally {
-        setLoading(false);
+  const fetchPackageCost = async () => {
+    if (!selectedPackageId) return; // Exit if no package is selected
+  
+    try {
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      const response = await axios.get(`${apiUrl}/package/${selectedPackageId}/cost?dependency=true`, {
+        headers: {
+          "X-Authorization": `Bearer ${cleanToken}`,
+        },
+      });
+  
+      if (response.data) {
+        setPackageCost(response.data[selectedPackageId]);
       }
-    } else {
-      setError("Please enter a valid URL.");
+    } catch (error) {
+      setError("Error fetching package cost");
     }
   };
 
@@ -314,14 +366,51 @@ const App: React.FC = () => {
               <h2>Upload Package</h2>
               <input
                 type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter Package Name"
+                disabled={loading}
+                className="name-input"
+              />
+              
+              <input
+                type="text"
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                placeholder="Enter Version"
+                disabled={loading}
+                className="version-input"
+              />
+
+              <input
+                type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="Enter URL for ZIP"
                 disabled={loading}
                 className="url-input"
               />
-              <button onClick={handleUrlSubmit} disabled={loading}>
-                Fetch ZIP from URL
+
+              <input
+                value={jsProgram}
+                onChange={(e) => setJsProgram(e.target.value)}
+                placeholder="Enter JS Program (Optional)"
+                disabled={loading}
+                className="jsprogram-input"
+              ></input>
+
+              <label className="debloat-toggle">
+                <input
+                  type="checkbox"
+                  checked={debloat}
+                  onChange={(e) => setDebloat(e.target.checked)}
+                  disabled={loading}
+                />
+                Enable Debloating
+              </label>
+
+              <button onClick={handleUpload} disabled={loading}>
+                Upload Package
               </button>
 
               <div
@@ -369,26 +458,44 @@ const App: React.FC = () => {
               />
               {loading && <p>Loading...</p>}
               <ul>
-                {filteredFiles.length > 0 ? (
-                  filteredFiles.map((file) => (
-                    <li key={file.ID}>
-                      <input
-                        type="radio"
-                        name="package"
-                        value={file.ID}
-                        checked={selectedPackageId === file.ID}
-                        onChange={() => setSelectedPackageId(file.ID)}
-                      />
-                      {file.Name} - Version: {file.Version.VersionNumber}
-                    </li>
-                  ))
-                ) : (
-                  <li>No matches</li>
-                )}
+              {filteredFiles.length > 0 ? (
+                filteredFiles.map((file) => (
+                  <li key={file.ID}>
+                    <input
+                      type="radio"
+                      name="package"
+                      value={file.ID}
+                      checked={selectedPackageId === file.ID}
+                      onChange={() => setSelectedPackageId(file.ID)}
+                    />
+                    {file.Name} - Version: {typeof file.Version === "string" ? file.Version : file.Version.VersionNumber}
+                  </li>
+                ))
+              ) : (
+                <li>No matches</li>
+              )}
               </ul>
               <button onClick={fetchFiles} disabled={loading}>
                 Refresh List
               </button>
+
+              {/* "Get Cost" Button */}
+              {selectedPackageId && (
+                <div>
+                  <button onClick={fetchPackageCost} disabled={loading}>
+                    Get Cost
+                  </button>
+                </div>
+              )}
+
+              {/* Display package cost */}
+              {packageCost && (
+                <div>
+                  <h3>Package Cost:</h3>
+                  <p>Standalone Cost: {packageCost.standaloneCost}</p>
+                  <p>Total Cost: {packageCost.totalCost}</p>
+                </div>
+              )}
 
               {/* Download Button */}
               {selectedPackageId && (
