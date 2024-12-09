@@ -1,0 +1,407 @@
+{
+	"info": {
+		"_postman_id": "8b08f238-3c68-4abd-8549-1ff5d260759a",
+		"name": "/package/{id}",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39859783",
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-8b08f238-3c68-4abd-8549-1ff5d260759a?action=share&source=collection_link&creator=39859783"
+	},
+	"item": [
+		{
+			"name": "get_id_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 200",
+							"pm.test(\"Response Code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// Validate the Content-Type header",
+							"pm.test(\"Content-Type should be JSON\", function () {",
+							"    pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/json; charset=utf-8');",
+							"});",
+							"",
+							"// Validate response structure",
+							"pm.test(\"Response should include metadata and data\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property(\"metadata\");",
+							"    pm.expect(jsonData).to.have.property(\"data\");",
+							"    pm.expect(jsonData.metadata).to.have.property(\"Name\");",
+							"    pm.expect(jsonData.metadata).to.have.property(\"Version\");",
+							"    pm.expect(jsonData.metadata).to.have.property(\"ID\");",
+							"    pm.expect(jsonData.data).to.satisfy(data => ",
+							"        data.hasOwnProperty(\"Content\")",
+							"    );",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 400",
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// NOTE: May be a quotation error here, API spec unclear",
+							"pm.test(\"Response to invalid package/{id} GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('There is missing field(s) in the PackageID or it is formed improperly, or is invalid.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_403",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 403",
+							"pm.test(\"Status code is 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/{id} GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Authentication failed due to invalid or missing AuthenticationToken.' );",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/package/123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_404",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 404",
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/{id} GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Package does not exist.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				]
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 200",
+							"pm.test(\"Response Code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response to valid package/{id} POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Version is updated.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"metadata\": {\n        \"Name\": \"watch.js\",\n        \"Version\": \"1.2.4\",\n        \"ID\": \"387e91e1efac8a0bfc6daa49284f0cb2cbe033807700b1bd7fb37b6a7896117a\"\n    },\n    \"data\": {\n    \"Name\": \"watch.js\",\n    \"Content\": \"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\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 400",
+							"pm.test(\"Response Code should be 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/{id} POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('There is missing field(s) in the PackageID or it is formed improperly, or is invalid.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_403",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 403",
+							"pm.test(\"Status code is 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/{id} POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Authentication failed due to invalid or missing AuthenticationToken.' );",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/package/123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_id_invalid_404",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 404",
+							"pm.test(\"Response Code should be 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/{id} POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Package does not exist.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"metadata\": {\n    \"Name\": \"easy-math-module\",\n    \"Version\": \"1.2.0\",\n    \"ID\": \"fe7bf793c45abaf799b376d85690bd91c5073b19bdb8465f48856ddec986a3d5\"\n  },\n  \"data\": {\n    \"URL\": \"https://github.com/Gninoskcaj/easy-math-module\",\n    \"JSProgram\": \"if (process.argv.length === 7) {\\nconsole.log('Success')\\nprocess.exit(0)\\n} else {\\nconsole.log('Failed')\\nprocess.exit(1)\\n}\",\n    \"debloat\": false\n  }\n}   ",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

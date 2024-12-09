@@ -1,0 +1,274 @@
+{
+	"info": {
+		"_postman_id": "2612e739-bf7a-4219-8329-c016a589eadc",
+		"name": "/package/{id}/cost",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39859783",
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-2612e739-bf7a-4219-8329-c016a589eadc?action=share&source=collection_link&creator=39859783"
+	},
+	"item": [
+		{
+			"name": "cost_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Test: Validate status code is 200",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// Test: Validate response is an object",
+							"pm.test(\"Response is an object\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.be.an(\"object\");",
+							"});",
+							"",
+							"// Test: Validate each package in the response matches the schema",
+							"pm.test(\"Validate PackageCost schema\", function () {",
+							"    const response = pm.response.json();",
+							"",
+							"    // Ensure response is an object",
+							"    pm.expect(response).to.be.an(\"object\");",
+							"",
+							"    // Iterate through each package entry",
+							"    const keys = Object.keys(response);",
+							"    keys.forEach((key) => {",
+							"        const packageData = response[key];",
+							"",
+							"        // Test: Validate the 'totalCost' property exists and is a number",
+							"        pm.test(`Package ${key} contains 'totalCost'`, function () {",
+							"            pm.expect(packageData).to.have.property(\"totalCost\");",
+							"            pm.expect(packageData.totalCost).to.be.a(\"number\");",
+							"        });",
+							"",
+							"        // Test: Validate the 'standaloneCost' property when dependency=true",
+							"        if (pm.request.toString().includes(\"dependency=true\")) {",
+							"            pm.test(`Package ${key} contains 'standaloneCost' when dependency=true`, function () {",
+							"                pm.expect(packageData).to.have.property(\"standaloneCost\");",
+							"                pm.expect(packageData.standaloneCost).to.be.a(\"number\");",
+							"            });",
+							"        }",
+							"",
+							"        // Test: Ensure no additional unexpected properties exist",
+							"        pm.test(`Package ${key} contains only allowed properties`, function () {",
+							"            const allowedKeys = [\"standaloneCost\", \"totalCost\"];",
+							"            const actualKeys = Object.keys(packageData);",
+							"            actualKeys.forEach((prop) => {",
+							"                pm.expect(allowedKeys).to.include(prop);",
+							"            });",
+							"        });",
+							"    });",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}/cost",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}",
+						"cost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "cost_invalid_400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 400",
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid /package/{id}/cost GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('There is missing field(s) in the PackageID or it is formed improperly, or is invalid.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/cost",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"cost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "cost_invalid_403",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 403",
+							"pm.test(\"Status code is 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid /package/{id}/cost GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Authentication failed due to invalid or missing AuthenticationToken.' );",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}/cost",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}",
+						"cost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "cost_invalid_404",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 404",
+							"pm.test(\"Response Code should be 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid /package/{id}/cost GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Package does not exist.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/123/cost",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"123",
+						"cost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "cost_invalid_500",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 500",
+							"pm.test(\"Response Code should be 500\", function () {",
+							"    pm.response.to.have.status(500);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid /package/{id}/cost GET\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('The package rating system choked on at least one of the metrics.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/package/{{package_id}}/cost",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"{{package_id}}",
+						"cost"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

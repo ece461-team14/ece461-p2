@@ -1,0 +1,213 @@
+{
+	"info": {
+		"_postman_id": "b68c2a1d-f9c0-4921-9120-2706355ce85e",
+		"name": "/authenticate",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39859783",
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-b68c2a1d-f9c0-4921-9120-2706355ce85e?action=share&source=collection_link&creator=39859783"
+	},
+	"item": [
+		{
+			"name": "packages_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 200",
+							"pm.test(\"Response Code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// Validate the Content-Type header",
+							"pm.test(\"Content-Type should be string\", function () {",
+							"    // Get the response body as a string",
+							"    const responseBody = pm.response.text();",
+							"",
+							"    // Remove surrounding quotes from the response",
+							"    const token = responseBody.replace(/[\"]/g, \"\");",
+							"",
+							"    // Ensure the extracted token is a valid string",
+							"    pm.expect(typeof(token)).to.equal('string');",
+							"",
+							"    // Set the extracted token to the environment variable",
+							"    pm.environment.set(\"AUTH_TOKEN\", token);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"User\": {\n    \"name\": \"{{USER}}\",\n    \"isAdmin\": true\n  },\n  \"Secret\": {\n    \"password\": \"{{USER_PASSWORD}}\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/authenticate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"authenticate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "packages_invalid_400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 400",
+							"pm.test(\"Response Code should be 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response error from /authenticate PUT incomplete\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('There is missing field(s) in the AuthenticationRequest or it is formed improperly.');",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"User\": {\n    \"name\": \"{{USER}}\"\n  },\n  \"Secret\": {\n    \"password\": \"{{USER_PASSWORD}}\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/authenticate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"authenticate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "packages_invalid_401",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 401",
+							"pm.test(\"Response Code should be 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test(\"Response error from /authenticate PUT\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('The user or password is invalid.');",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "X_Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"User\": {\n    \"name\": \"{{USER}}\",\n    \"isAdmin\": true\n  },\n  \"Secret\": {\n    \"password\": \"invalid_password\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/authenticate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"authenticate"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "USER",
+			"value": "ece30861defaultadminuser",
+			"type": "default"
+		}
+	]
+}

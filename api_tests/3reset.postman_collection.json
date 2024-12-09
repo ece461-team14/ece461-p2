@@ -59,8 +59,8 @@
 					"script": {
 						"exec": [
 							"// Validate that the response code should be 403",
-							"pm.test(\"Response Code should be 401\", function () {",
-							"    pm.response.to.have.status(401);",
+							"pm.test(\"Response Code should be 403\", function () {",
+							"    pm.response.to.have.status(403);",
 							"});",
 							"",
 							"pm.test(\"Response to invalid RESET authentication\", function () {",
@@ -77,7 +77,7 @@
 				"header": [
 					{
 						"key": "X-Authorization",
-						"value": "invalid",
+						"value": "Bearer invalid",
 						"type": "text"
 					}
 				],

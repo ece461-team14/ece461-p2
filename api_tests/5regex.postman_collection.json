@@ -1,0 +1,235 @@
+{
+	"info": {
+		"_postman_id": "76caf1a0-075b-44a5-ae80-bad440cd7230",
+		"name": "/package/byRegEx",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39859783",
+		"_collection_link": "https://ece461-p2.postman.co/workspace/ece461-p2~f9dd22be-38e2-46cd-8204-8d5c3d3b6a55/collection/39859783-76caf1a0-075b-44a5-ae80-bad440cd7230?action=share&source=collection_link&creator=39859783"
+	},
+	"item": [
+		{
+			"name": "post_regex_valid",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 200",
+							"pm.test(\"Response Code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// Validate the Content-Type header",
+							"pm.test(\"Content-Type should be JSON\", function () {",
+							"    pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/json; charset=utf-8');",
+							"});",
+							"",
+							"// Validate the response schema",
+							"pm.test(\"Response should be an array of packages\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"    jsonData.forEach(package => {",
+							"        pm.expect(package).to.have.property(\"Name\");",
+							"        pm.expect(package).to.have.property(\"Version\");",
+							"        pm.expect(package).to.have.property(\"ID\");",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"RegEx\": \".*?watch.js.*\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/byRegEx/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"byRegEx",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_regex_invalid_400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 400",
+							"pm.test(\"Response Code should be 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response to incomplete /package/byRegEx POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('There is missing field(s) in the PackageRegEx or it is formed improperly, or is invalid');",
+							"});",
+							"// NOTE: Could be error here bc of lack of ."
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/byRegEx",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"byRegEx"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_regex_invalid_403",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 403",
+							"pm.test(\"Response Code should be 403\", function () {",
+							"    pm.response.to.have.status(403);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid /package/byRegEx POST authentication\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('Authentication failed due to invalid or missing AuthenticationToken.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"RegEx\": \".*?test_package.*\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/byRegEx",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"byRegEx"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post_regex_invalid_404",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Validate that the response code should be 404",
+							"pm.test(\"Response Code should be 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response to invalid package/byRegEx POST\", function () {",
+							"    pm.expect(pm.response).to.equal.toString('No package found under this regex.');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "{{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"RegEx\": \".*?invalid_package.*\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/package/byRegEx",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"package",
+						"byRegEx"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
