@@ -45,14 +45,17 @@ export const postPackageID = async (req, res) => {
 
     const username = decoded.name;
 
+    // verify ID, Version exist in body
+    if (!req.body.metadata.ID || !req.body.metadata.Version) {
+      return res
+        .status(400)
+        .send(
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+        );
+    }
+
     // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
-    // list objects of req.body
-    console.log("req.body: " + Object.keys(req.body));
-    // list objects of metadata
-    console.log("metadata: " + Object.keys(metadata));
-    // list objects of data
-    console.log("data: " + Object.keys(data));
     const ID = req.body.metadata.ID;
     const Version = req.body.metadata.Version;
     const { Content, URL, JSProgram, Debloat } = data;
