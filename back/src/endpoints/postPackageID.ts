@@ -11,7 +11,6 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const RATING_THRESHOLD = 0.2;
 
 export const postPackageID = async (req, res) => {
-  console.log("HANDLING /update PACKAGE REQUEST");
   try {
     // Extract token from the X-Authorization header
     const authHeader = req.header("X-Authorization");
@@ -43,29 +42,19 @@ export const postPackageID = async (req, res) => {
         );
     }
 
-    const username = decoded.name;
-
-    // verify ID, Version exist in body
-    if (!req.body.metadata.ID || !req.body.metadata.Version) {
-      return res
-        .status(400)
-        .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
-        );
-    }
+    const username = (decoded as jwt.JwtPayload).name;
 
     // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
-    const ID = req.body.metadata.ID;
-    const Version = req.body.metadata.Version;
-    const { Content, URL, JSProgram, Debloat } = data;
+    const { ID, Version } = metadata;
+    const { Content, URL, JSProgram, debloat } = data;
 
     // Validate request body
     if (!ID || (!Content && !URL)) {
       return res
         .status(400)
         .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "1There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -107,17 +96,19 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "2There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
     // Ensure the upload method matches
     const uploadMethod = Content ? "Upload" : "URL";
     if (existingPackage.UploadMethod !== uploadMethod) {
+      console.log("UploadMethod: ", existingPackage.UploadMethod);
+      console.log("uploadMethod: ", uploadMethod);
       return res
         .status(400)
         .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "3There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -147,7 +138,7 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "4There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -188,7 +179,7 @@ export const postPackageID = async (req, res) => {
           return res
             .status(400)
             .send(
-              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+              "5There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
             );
         }
 
@@ -219,7 +210,7 @@ export const postPackageID = async (req, res) => {
         return res
           .status(400)
           .send(
-            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            "6There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
           );
       }
     } else if (URL) {
@@ -232,7 +223,7 @@ export const postPackageID = async (req, res) => {
           return res
             .status(400)
             .send(
-              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+              "7There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
             );
         }
 
@@ -263,7 +254,7 @@ export const postPackageID = async (req, res) => {
         return res
           .status(400)
           .send(
-            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            "8There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
           );
       }
     }

@@ -102,7 +102,7 @@ export const postPackage = async (req, res) => {
       Cost: -1,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
-      UploadMethod: Content ? "Upload" : "URL",
+      UploadMethod: URL ? "Upload" : "URL",
     };
 
     // Upload the package content or ingest from URL
@@ -144,7 +144,12 @@ export const postPackage = async (req, res) => {
       }
 
       if (JSProgram) {
-        const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+        const programResponse = await executeJsOnZip(
+          Content,
+          JSProgram,
+          metadata,
+          username
+        );
         if (programResponse === 1) {
           return res
             .status(406)
@@ -191,7 +196,12 @@ export const postPackage = async (req, res) => {
       Content = packageData.toString("base64");
 
       if (JSProgram) {
-        const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+        const programResponse = await executeJsOnZip(
+          Content,
+          JSProgram,
+          metadata,
+          username
+        );
         if (programResponse === 1) {
           return res
             .status(406)
@@ -222,7 +232,7 @@ export const postPackage = async (req, res) => {
       Version: Version,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
-      UploadMethod: Content ? "Upload" : "URL",
+      UploadMethod: URL ? "URL" : "Upload",
       Score: metadata.Score,
       Cost: metadata.Cost,
     };
