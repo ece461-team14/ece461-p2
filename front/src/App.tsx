@@ -35,6 +35,8 @@ const App: React.FC = () => {
   const [version, setVersion] = useState<string>(""); // Package version
   const [jsProgram, setJsProgram] = useState<string>(""); // Optional JS program
   const [debloat, setDebloat] = useState<boolean>(false);
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [packageRating, setPackageRating] = useState(null); // store fetched rating
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -153,101 +155,132 @@ const App: React.FC = () => {
   };
 
   const handleUrlSubmit = async () => {
-  try {
-    if (!url || !name || !version) {
-      console.error("Name, Version, and URL are required.");
-      return;
-    }
-
-    const token = localStorage.getItem("authToken");
-    const cleanToken = token?.replace(/^Bearer\s+/i, '');
-
-    if (!cleanToken) {
-      console.error("Authorization token is missing or invalid.");
-      return;
-    }
-
-    const packageData = {
-      Name: name,
-      Version: version,
-      URL: url,
-      JSProgram: jsProgram || `
-        if (process.argv.length === 7) {
-          console.log('Success');
-          process.exit(0);
-        } else {
-          console.log('Failed');
-          process.exit(1);
-        }
-      `,
-      debloat,
-    };
-
-    console.log("Sending package data:", packageData);
-
-    const response = await fetch(`${apiUrl}/package`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Authorization": `Bearer ${cleanToken}`,
-      },
-      body: JSON.stringify(packageData),
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log("Package uploaded successfully:", result);
-    } else {
-      const errorText = await response.text();
-      console.error("Error uploading package:", errorText);
-    }
-  } catch (error) {
-    console.error("Error submitting the package:", error);
-  }
-};
-
-  const handleUpload = async () => {
-    const urlToSubmit = url.trim();
-    if (urlToSubmit) {
-      // If URL is provided, handle URL submission
-      try {
-        await handleUrlSubmit();
-        console.log("URL submission successful");
-      } catch (error) {
-        console.error("Error submitting URL:", error);
-      }
-    } else {
-      // If no URL is provided, handle file upload
-      const formData = new FormData();
-      const token = localStorage.getItem("authToken");
-      const cleanToken = token?.replace(/^Bearer\s+/i, "");
-  
-      if (filesToUpload.length === 0) {
-        console.error("No files to upload.");
+    try {
+      if (!url || !name || !version) {
+        console.error("Name, Version, and URL are required.");
         return;
       }
   
-      formData.append("file", filesToUpload[0]); // Assuming `filesToUpload[0]` is your file object
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
   
-      // Send the file upload request
-      try {
-        const response = await fetch(`${apiUrl}/package`, {
-          method: "POST",
-          headers: {
-            "X-Authorization": `Bearer ${cleanToken}`,
-          },
-          body: formData,
-        });
-  
-        const result = await response.json();
-        if (response.ok) {
-          console.log("File uploaded successfully", result);
-        } else {
-          console.error("Error uploading file", result);
-        }
-      } catch (error) {
-        console.error("Error uploading file:", error);
+      if (!cleanToken) {
+        console.error("Authorization token is missing or invalid.");
+        return;
       }
+  
+      const fixedJsProgram = jsProgram.replace(/\\n/g, "\n").replace(/\\'/g, "'");
+      // Don't manipulate the `jsProgram` string here. Just pass it as it is.
+      const packageData = {
+        Name: name,
+        Version: version,
+        URL: url,
+        JSProgram: fixedJsProgram, // Send the raw JavaScript code
+        debloat,
+      };
+  
+      console.log("Sending package data:", packageData);
+  
+      // Here, you can directly send the data with JSON.stringify()
+      const response = await fetch(`${apiUrl}/package`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Authorization": `Bearer ${cleanToken}`,
+        },
+        body: JSON.stringify(packageData), // Body is stringified correctly
+      });
+  
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Package uploaded successfully:", result);
+      } else {
+        const errorText = await response.text();
+        console.error("Error uploading package:", errorText);
+      }
+    } catch (error) {
+      console.error("Error submitting the package:", error);
+    }
+  };
+
+  const handleZipFileSubmit = async () => {
+    try {
+      if (!zipFile || !name || !version) {
+        console.error("Name, Version, and ZIP file are required.");
+        return;
+      }
+  
+      console.log("zip file", zipFile);
+  
+      // Convert the ZIP file to base64
+      const base64Content = await fileToBase64(zipFile);
+      
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      if (!cleanToken) {
+        console.error("Authorization token is missing or invalid.");
+        return;
+      }
+  
+      // Prepare the package data with base64 content
+      const packageData = {
+        Name: name,        // Attach the package name
+        Version: version,  // Attach the package version
+        Content: base64Content,  // Attach the base64 content of the ZIP file
+        JSProgram: jsProgram.replace(/\\n/g, "\n").replace(/\\'/g, "'"),  // Optional JS Program
+      };
+  
+      console.log("Sending package data via ZIP file:", packageData);
+  
+      // Send the data to the server
+      const response = await fetch(`${apiUrl}/package`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Authorization": `Bearer ${cleanToken}`,
+        },
+        body: JSON.stringify(packageData),  // Send the data as JSON
+      });
+  
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Package uploaded successfully via ZIP:", result);
+      } else {
+        const errorText = await response.text();
+        console.error("Error uploading package via ZIP:", errorText);
+      }
+    } catch (error) {
+      console.error("Error submitting the ZIP file package:", error);
+    }
+  };
+  
+  // Utility function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        resolve(base64String.split(',')[1]); // Return only the base64 content, without the data URL prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleUpload = async () => {
+    try {
+      if (url) {
+        // Handle upload via URL
+        await handleUrlSubmit();
+      } else if (zipFile) {
+        // Handle upload via ZIP file
+        await handleZipFileSubmit();
+      } else {
+        console.error("Please provide either a URL or a ZIP file for upload.");
+      }
+    } catch (error) {
+      console.error("Error during upload:", error);
     }
   };
 
@@ -307,12 +340,44 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle file drop for drag-and-drop file upload
+  const fetchPackageRating = async () => {
+    const token = localStorage.getItem("authToken");
+    const cleanToken = token?.replace(/^Bearer\s+/i, '');
+    if (!selectedPackageId) {
+      alert('Please select a package first');
+      return;
+    }
+    try {
+      // Replace with full URL if necessary, or use relative path if running on the same server
+      const response = await axios.get(`${apiUrl}/package/${selectedPackageId}/rate`, {
+        headers: {
+          'X-Authorization': `Bearer ${cleanToken}`,
+        },
+      });
+      setPackageRating(response.data);
+    } catch (error) {
+      console.error('Error fetching package rating:', error);
+    }
+  };
+
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files);
-      setFilesToUpload((prev) => [...prev, ...newFiles]);
+      const newFile = Array.from(e.dataTransfer.files).find(file => file.type === "application/zip");
+      if (newFile) {
+        setZipFile(newFile);  // Set the zip file state
+        setFilesToUpload((prev) => [...prev, newFile]);
+      }
+    }
+  };
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFile = Array.from(e.target.files).find(file => file.type === "application/zip");
+      if (newFile) {
+        setZipFile(newFile);  // Set the zip file state
+        setFilesToUpload((prev) => [...prev, newFile]);
+      }
     }
   };
 
@@ -324,14 +389,6 @@ const App: React.FC = () => {
   // Trigger the file input when the drop area is clicked
   const handleDropAreaClick = () => {
     fileInputRef.current?.click();
-  };
-
-  // Handle file input change when a file is selected from file system
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFilesToUpload((prev) => [...prev, ...newFiles]);
-    }
   };
 
   // Remove file from the filesToUpload list
@@ -486,6 +543,14 @@ const App: React.FC = () => {
                     Get Cost
                   </button>
                 </div>
+                
+              )}
+
+              {/* "Get Cost" Button */}
+              {selectedPackageId && (
+                <div>
+                  <button onClick={fetchPackageRating}>Get Package Rating</button>
+                </div>                
               )}
 
               {/* Display package cost */}
@@ -494,6 +559,13 @@ const App: React.FC = () => {
                   <h3>Package Cost:</h3>
                   <p>Standalone Cost: {packageCost.standaloneCost}</p>
                   <p>Total Cost: {packageCost.totalCost}</p>
+                </div>
+              )}
+
+              {packageRating && (
+                <div>
+                  <h2>Package Rating:</h2>
+                  <pre>{JSON.stringify(packageRating, null, 2)}</pre>
                 </div>
               )}
 
