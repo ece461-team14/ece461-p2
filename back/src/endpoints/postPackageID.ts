@@ -101,7 +101,7 @@ export const postPackageID = async (req, res) => {
     }
 
     // Ensure the upload method matches
-    const uploadMethod = Content ? "Upload" : "URL";
+    const uploadMethod = URL ? "Upload" : "URL";
     if (existingPackage.UploadMethod !== uploadMethod) {
       return res
         .status(400)
@@ -182,7 +182,12 @@ export const postPackageID = async (req, res) => {
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
+          const programResponse = await executeJsOnZip(
+            Content,
+            JSProgram,
+            metadata,
+            username
+          );
           if (programResponse === 1) {
             return res
               .status(406)
@@ -221,7 +226,12 @@ export const postPackageID = async (req, res) => {
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(packageData.toString("base64"), JSProgram, metadata, username);
+          const programResponse = await executeJsOnZip(
+            packageData.toString("base64"),
+            JSProgram,
+            metadata,
+            username
+          );
           if (programResponse === 1) {
             return res
               .status(406)
