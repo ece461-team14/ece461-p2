@@ -8,7 +8,7 @@ export function idExists(jsonData: Record<string, any>, id: string): boolean {
 
 export function getObjFromId(
   registry: Record<string, any>,
-  id: string
+  id: string,
 ): any | null {
   for (const nameField in registry) {
     if (Object.hasOwnProperty.call(registry, nameField)) {

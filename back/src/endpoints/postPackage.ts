@@ -45,7 +45,7 @@ export const postPackage = async (req, res) => {
     }
     const username = (decoded as jwt.JwtPayload).name;
 
-    let { Name, Version, JSProgram, Content, URL } = req.body;
+    let { Name, Version, JSProgram, Content, URL, PermLevel } = req.body;
 
     // Validate the request body
     if (!Name || !Version || (!Content && !URL)) {
@@ -102,7 +102,8 @@ export const postPackage = async (req, res) => {
       Cost: -1,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
-      UploadMethod: URL ? "Upload" : "URL",
+      UploadMethod: Content ? "Upload" : "URL",
+      PermLevel: PermLevel ? PermLevel : 0,
     };
 
     // Upload the package content or ingest from URL
@@ -232,7 +233,8 @@ export const postPackage = async (req, res) => {
       Version: Version,
       TimeUploaded: timeUploaded,
       UsernameUploaded: username,
-      UploadMethod: URL ? "URL" : "Upload",
+      PermLevel: metadata.PermLevel,
+      UploadMethod: Content ? "Upload" : "URL",
       Score: metadata.Score,
       Cost: metadata.Cost,
     };

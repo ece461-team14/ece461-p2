@@ -5,12 +5,12 @@ import { getPackageFromID } from "../utils/s3Utils.js";
 import { executeJsOnZip } from "../utils/runJSProgram.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { getUserDetails } from "../utils/userPerms.js";
 dotenv.config();
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const getPackageID = async (req, res) => {
-  console.log("package id endpoint");
   try {
     const packageId = req.params.id;
 
@@ -27,8 +27,8 @@ export const getPackageID = async (req, res) => {
     const token = authHeader.split(" ")[1]; // Extract token after "Bearer "
     if (!token) {
       return res
-        .status(403)
-        .send("Token format is incorrect. Use 'Bearer <token>'");
+        .status(400)
+        .send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
     }
 
     // Verify the JWT token
@@ -66,6 +66,11 @@ export const getPackageID = async (req, res) => {
 
     // get object with given ID
     const metadata = getObjFromId(regCache, packageId);
+    const { permLevel, isAdmin } = await getUserDetails(username);
+    if (metadata.PermLevel > permLevel) {
+      console.error("User does not have permission to view this package.");
+      return res.status(403).send("User does not have permission to view this package.");
+    }
 
     // Get the package content
     const packageResponse = await getPackageFromID(bucketName, packageId);
@@ -79,6 +84,26 @@ export const getPackageID = async (req, res) => {
           .send("Package has failed sensitive module check.");
       }
     }
+
+    // Module Download History
+    if (metadata.DownloadHistory !== undefined) {
+      metadata.DownloadHistory.push({
+        User: username,
+        DownloadTime: new Date().toISOString()
+      });
+    }
+    else {
+      metadata.DownloadHistory = [{
+        User: username,
+        DownloadTime: new Date().toISOString()
+      }];
+    }
+
+    fs.writeFileSync(
+      "./registry.json",
+      JSON.stringify(regCache, null, 2),
+      "utf8"
+    );
 
     // Send response with metadata and content
     res.status(200).json({

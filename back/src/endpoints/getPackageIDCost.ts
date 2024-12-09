@@ -3,6 +3,8 @@ import * as fs from "fs";
 import AdmZip from "adm-zip";
 import { idExists, getObjFromId } from "../utils/idReg.js";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getUserDetails } from "../utils/userPerms.js";
+
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const getPackageIDCost = async (req, res) => {
@@ -17,12 +19,18 @@ export const getPackageIDCost = async (req, res) => {
     const token = authHeader.split(" ")[1];
     if (!token) {
       return res
-        .status(403)
-        .send("Authentication failed due to invalid or missing AuthenticationToken.");
+        .status(400)
+        .send("There is missing field(s) in the PackageID or it is formed improperly, or is invalid.");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token payload:", decoded);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    }
+    catch (error) {
+      return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
+    const username = decoded.name;
 
     // Get Package ID
     const packageId = req.params.id; // get package id according to spec
@@ -50,6 +58,13 @@ export const getPackageIDCost = async (req, res) => {
     } catch (err) {
       console.error("Error checking package existence:", err);
       return res.status(500).send("Error retrieving package metadata.");
+    }
+
+    const packageMetadata = getObjFromId(regCache, packageId);
+    const { permLevel, isAdmin } = await getUserDetails(username);
+    if (packageMetadata.PermLevel > permLevel) {
+      console.error("User does not have permission to view this package.");
+      return res.status(403).send("User does not have permission to view this package.");
     }
 
     // get the costs from the data

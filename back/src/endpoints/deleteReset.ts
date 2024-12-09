@@ -3,6 +3,7 @@ import {
   ListObjectsV2Command,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getUserDetails } from "../utils/userPerms.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -28,11 +29,18 @@ export const deleteReset = async (req, res) => {
         .send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
 
+    let decoded;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
     }
     catch (error) {
       return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
+    }
+    const username = (decoded as jwt.JwtPayload).name;
+    const { permLevel, isAdmin } = await getUserDetails(username);
+    if (!isAdmin) {
+      return res.status(403).send("User does not have permission to reset registry.");
+
     }
 
     const bucketName = process.env.S3_BUCKET;

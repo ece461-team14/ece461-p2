@@ -9,6 +9,7 @@ import {
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import fs from "fs";
+import { getUserDetails } from "../utils/userPerms.js";
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -28,12 +29,14 @@ export const getPackageIDRate = async (req, res) => {
     }
 
     // Verify the JWT token
+    let decoded;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
     }
     catch (error) {
       return res.status(403).send("Authentication failed due to invalid or missing AuthenticationToken.");
     }
+    const username = decoded.name;
 
     // Get Package ID
     const packageId = req.params.id; // get package id according to spec
@@ -54,6 +57,12 @@ export const getPackageIDRate = async (req, res) => {
     else if (Object.keys(registryEntry.Score).length === 0) {
       console.log("Package does not exist.");
       return res.status(500).send("The package rating system choked on at least one of the metrics.");
+    }
+
+    const { permLevel, isAdmin } = await getUserDetails(username);
+    if (registryEntry.PermLevel > permLevel) {
+      console.error("User does not have permission to view this package.");
+      return res.status(403).send("User does not have permission to view this package.");
     }
 
     return res.status(200).send(registryEntry.Score);

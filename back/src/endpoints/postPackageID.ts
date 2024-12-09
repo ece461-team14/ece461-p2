@@ -47,7 +47,7 @@ export const postPackageID = async (req, res) => {
     // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
     const { ID, Version } = metadata;
-    const { Content, URL, JSProgram, debloat } = data;
+    const { Content, URL, JSProgram, Debloat, PermLevel } = data;
 
     // Validate request body
     if (!ID || (!Content && !URL)) {
@@ -151,6 +151,7 @@ export const postPackageID = async (req, res) => {
       JSProgram,
       TimeUpdated: timeUpdated,
       UsernameUploaded: username,
+      PermLevel: PermLevel ? PermLevel : 0,
       Score: {},
       Cost: -1,
     };
