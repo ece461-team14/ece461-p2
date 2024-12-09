@@ -1,0 +1,14 @@
+NOTE: restler-fuzzler and ece461-p2 must reside in the same directory
+Setup (from Root restler-fuzzler directory, after cloning):
+cp ../ece461-p2/ece461_fall_2024_openapi_spec.yaml .
+docker build -t restler .
+alias restler='docker run --rm -v "$(pwd)":/mnt -it restler'
+restler
+cd /mnt
+
+NOTE: ALL RESTLER COMMANDS RUN FROM WITHIN /mnt in Docker container
+Compile:
+../RESTler/restler/Restler compile --api_spec ece461_fall_2024_openapi_spec.yaml
+
+Test:
+../RESTler/restler/Restler test --grammar_file Compile/grammar.py --dictionary_file Compile/dict.json --settings ./Compile/engine_settings.json

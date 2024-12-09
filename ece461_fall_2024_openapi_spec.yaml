@@ -1,5 +1,10 @@
 ---
 openapi: 3.1.2
+servers:
+  - url: http://localhost:8080
+    description: Local server
+  - url: https://34.199.154.104:8080/
+    description: Production server
 info:
   title: ECE 461 - Fall 2024 - Project Phase 2
   version: 2.5.1
@@ -18,18 +23,118 @@ info:
 
                 Eg.
 
-                    PacakgeName: Alpha, PackageVersion: 1.1.1 -> PackageID: 988645763
+                    PackageName: Alpha, PackageVersion: 1.1.1 -> PackageID: 988645763
 
                     PacakgeName: Alpha, PackageVersion: 1.3.2 -> PackageID: 357898765
   termsOfService: http://swagger.io/terms/
   contact:
-    name: Prof. Davis
-    url: http://davisjam.github.io
-    email: davisjam@purdue.edu
+    name: Jackson Fair, James Murrer, Brendan Mclaughlin, Ata Guler
+    url: https://github.com/ece461-team14/ece461-p2
+    email: fairj@purdue.edu
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 paths:
+    /package/{id}/history:
+    get:
+      operationId: GetPackageHistory
+      summary: Retrieve the download history for a specific package.
+      description: Fetches the download history for the given package ID if the user has permission to view it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier for the package.
+          schema:
+            type: string
+        - name: X-Authorization
+          in: header
+          required: true
+          description: JWT token for user authentication.
+          schema:
+            $ref: '#/components/schemas/AuthenticationToken'
+      responses:
+        "200":
+          description: Successful retrieval of the download history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp:
+                      type: string
+                      format: date-time
+                      description: The date and time when the download occurred.
+                    user:
+                      type: string
+                      description: The username of the person who downloaded the package.
+        "400":
+          description: Bad request (e.g., missing or malformed parameters).
+        "403":
+          description: Authentication failed due to invalid or missing AuthenticationToken, or insufficient permissions to view the package.
+        "404":
+          description: The specified package ID does not exist.
+        "500":
+          description: Internal server error.
+      tags:
+        - Package
+      security:
+        - BearerAuth: []
+  /users:
+    post:
+      operationId: CreateUser
+      summary: Create a new user.
+      description: Adds a new user to the system, storing the username and password in a CSV file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: The username for the new user.
+                  example: "new_user"
+                password:
+                  type: string
+                  description: The password for the new user.
+                  example: "securepassword123"
+      responses:
+        "201":
+          description: User successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User registered successfully."
+        "400":
+          description: Missing required fields (username or password).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Username and password are required."
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error."
+      tags:
+        - User
   /packages:
     post:
       requestBody:
