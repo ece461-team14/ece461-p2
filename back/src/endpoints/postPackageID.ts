@@ -47,12 +47,14 @@ export const postPackageID = async (req, res) => {
 
     // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
-    // console.log(req.body);
-    // console.log(metadata);
-    // console.log(data);
+    // list objects of req.body
+    console.log("req.body: " + Object.keys(req.body));
+    // list objects of metadata
+    console.log("metadata: " + Object.keys(metadata));
+    // list objects of data
+    console.log("data: " + Object.keys(data));
     const ID = req.body.metadata.ID;
     const Version = req.body.metadata.Version;
-    console.log(req.body);
     const { Content, URL, JSProgram, Debloat } = data;
 
     // Validate request body
