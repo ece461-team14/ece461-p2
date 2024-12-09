@@ -1,3 +1,13 @@
+/**
+ * App Component for JJAB - Package Registry System
+ * 
+ * Handles user authentication, package uploads/downloads, 
+ * and fetches package data from a backend API.
+ * Supports file uploads via URL or ZIP files, and includes 
+ * features for cost/rating retrieval and admin actions.
+ * 
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import Login from "./Login";
@@ -165,15 +175,16 @@ const App: React.FC = () => {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("No token found.");
-
+  
+      // First, reset the registry on the server
       await axios.delete("http://localhost:8080/reset", {
         headers: { "X-Authorization": token },
       });
-
-      alert("Registry reset successfully.");
+  
+      alert("user reset successfully.");
     } catch (err) {
       console.error("Error resetting registry:", err);
-      alert("Failed to reset registry.");
+      alert("Failed to reset registry and CSV files.");
     }
   };
 
@@ -470,7 +481,7 @@ const App: React.FC = () => {
 
           <div className="container">
             <section className="left-section">
-              <h2>Upload Package</h2>
+              <h2  style={{ color: '#add8e6' }}>Upload Package</h2>
               <input
                 type="text"
                 value={name}
@@ -556,7 +567,7 @@ const App: React.FC = () => {
               )}
             </section>
             <section className="right-section">
-              <h2>Available Packages</h2>
+              <h2  style={{ color: '#add8e6' }}>Available Packages</h2>
               <input
                 type="text"
                 value={searchQuery}
@@ -586,7 +597,6 @@ const App: React.FC = () => {
                 Refresh List
               </button>
 
-              {/* "Get Cost" Button */}
               {selectedPackageId && (
                 <div>
                   <button onClick={fetchPackageCost} disabled={loading}>
@@ -596,28 +606,29 @@ const App: React.FC = () => {
                 
               )}
 
-              {/* "Get Cost" Button */}
               {selectedPackageId && (
                 <div>
                   <button onClick={fetchPackageRating}>Get Package Rating</button>
                 </div>                
               )}
 
-              {/* Display package cost */}
-              {packageCost && (
-                <div>
-                  <h3>Package Cost:</h3>
-                  <p>Standalone Cost: {packageCost.standaloneCost}</p>
-                  <p>Total Cost: {packageCost.totalCost}</p>
-                </div>
-              )}
+              {/* Display package cost and rating */}
+              <section className="package-info-section">
+                {packageCost && (
+                  <div>
+                    <h3>Package Cost:</h3>
+                    <p>Standalone Cost: {packageCost.standaloneCost}</p>
+                    <p>Total Cost: {packageCost.totalCost}</p>
+                  </div>
+                )}
 
-              {packageRating && (
-                <div>
-                  <h2>Package Rating:</h2>
-                  <pre>{JSON.stringify(packageRating, null, 2)}</pre>
-                </div>
-              )}
+                {packageRating && (
+                  <div>
+                    <h2>Package Rating:</h2>
+                    <pre>{JSON.stringify(packageRating, null, 2)}</pre>
+                  </div>
+                )}
+              </section>
 
               {/* Download Button */}
               {selectedPackageId && (

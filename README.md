@@ -1,144 +1,128 @@
-# ECE 461 Project - npm and GitHub Package Metric Analysis
+# ECE 461 Project - npm and GitHub Package Registry and Metrics Analysis
 
-Authors:
+**Authors:**
+- Ata Ulas Guler
+- Brendan McLaughlin
+- James Murrer
+- Jackson Fair
 
-Ata Ulas Guler
-Brendan McLaughlin
-James Murrer
-Jackson Fair
+## Description
 
-# Description
+This project is a Node.js and TypeScript application designed to manage and analyze npm and GitHub packages in a package registry. The application supports uploading npm or GitHub packages via zip files and URLs, and performs various operations like retrieving package information, calculating metrics (e.g., rating, cost, etc.), and supporting package management tasks.
 
-This project is a Node.js and TypeScript application designed to evaluate npm and GitHub repositories using several key metrics: bus factor, correctness, ramp-up time, responsiveness, and license status. It supports GitHub API interactions, calculates the NetScore based on custom weights, and outputs the results in NDJSON format. The application is built with modern JavaScript and TypeScript practices and includes features such as logging, testing, and code coverage.
+The backend includes endpoints for uploading packages, retrieving package details (e.g., rating, cost), and other administrative actions. The frontend provides a user interface for login, signup, and interaction with the registry, such as adding, updating, and querying packages.
 
-# Purpose
+## Purpose
 
-The purpose of this project is to assess the quality and maintainability of npm packages and repositories by calculating several software metrics. The application is configured to run on a Linux machine with an executable script (run) and produce NDJSON output.
+The purpose of this project is to provide a package registry system that not only allows users to upload and manage npm and GitHub packages but also calculates and displays key metrics like rating and cost. It offers a comprehensive interface for interacting with the registry, managing users, and conducting administrative tasks (e.g., resetting the registry).
 
-# Folder Structure
+## Folder Structure
 
-dist/: Contains the compiled JavaScript files.
-app.js: Main compiled JavaScript file generated from TypeScript.
-app.js.map: Source map for debugging.
-node_modules/: Contains all dependencies installed through npm.
+/backend: Contains the backend logic (Node.js server, API routes, and database interactions). /frontend: Contains the frontend React application for interacting with the registry and metrics. /src: /components: Contains React components (Login, Signup, AdminActions, etc.) App.tsx: Main application logic for handling routing and UI states. api.ts: API interaction utilities for frontend-backend communication. /assets: Stores images, styles, and other resources.
 
-src/: Contains the TypeScript source files:
-app.ts: Runs the main logic of the application.
-metric_score.ts: Generates scores based on metrics.
-scripts/install.sh: Script for installing RPM and Node.js.
+/package.json: Manages the project’s dependencies, scripts, and metadata. /tsconfig.json: TypeScript configuration for the project.
 
-test.txt: Contains test repositories for evaluation.
-.gitignore: Specifies files and directories to ignore in version control.
-eslint.config.mjs: ESLint configuration for code linting.
-package.json: Manages the project's dependencies, scripts, and metadata.
-package-lock.json: Auto-generated file that locks the versions of installed npm packages.
-tsconfig.json: TypeScript configuration file that defines how TypeScript files are compiled.
-run: Executable script to install, test, or run the application.
+### Backend API Endpoints
+- `POST /api/packages/upload`: Allows users to upload npm or GitHub packages via zip files or URLs.
+- `GET /api/packages/{id}`: Fetches metadata for a specific package by ID (e.g., rating, cost, etc.).
+- `GET /api/packages`: Retrieves a list of all available packages in the registry.
+- `DELETE /api/packages/{id}`: Deletes a package by its ID.
+- `POST /api/auth/login`: Authenticates a user based on username and password.
+- `POST /api/auth/signup`: Registers a new user in the system.
+- `DELETE /api/reset`: Resets the entire package registry (admin-only).
 
-# Prerequisites
+### Frontend Components
+- **Login**: Allows users to log in by entering their username and password.
+- **Signup**: Allows users to create a new account by providing a username and password.
+- **AdminActions**: Provides administrative functionalities such as resetting the package registry.
+
+## Prerequisites
 
 Ensure the following are installed on your machine:
 
-Node.js (v14.x or later recommended)
-npm (v6.x or later)
-GitHub API tokens (configured using the $GITHUB_TOKEN environment variable)
-Log file configuration using $LOG_FILE and log level configuration using $LOG_LEVEL
-Configuration
+- **Node.js** (v14.x or later recommended)
+- **npm** (v6.x or later)
+- **GitHub API tokens** (for GitHub package analysis)
+- **A MongoDB or SQL database** (for storing user data and package details)
 
-GitHub API Token: Set the environment variable $GITHUB_TOKEN to provide your GitHub token for API access.
-Logging: Use the $LOG_FILE environment variable to specify the log file location. The verbosity level is set via $LOG_LEVEL (0 for silent, 1 for informational, 2 for debug).
+### Configuration
+1. **GitHub API Token**: Set the environment variable `$GITHUB_TOKEN` to provide your GitHub token for API access.
+2. **Logging**: Use the `$LOG_FILE` environment variable to specify the log file location. The verbosity level is set via `$LOG_LEVEL` (0 for silent, 1 for informational, 2 for debug).
 
-# Running the Application
+## Running the Application
 
-The application is designed to be invoked with an executable file named run. Ensure the permissions are set to executable by running:
+To run the application, use the following commands:
 
-chmod +x run
+1. Install dependencies:
 
-# Commands:
-Install Dependencies:
+npm install
 
-./run install
-This command installs all necessary dependencies for the project. The program will exit with code 0 on success and a non-zero value on failure.
+2. Run the backend server:
 
-Run the Application with URL List:
+npm start
 
-./run <URL_FILE>
-BE SURE TO SET YOUR GITHUB TOKEN (export GUTHUB_TOKEN=<your token>) BEFORE RUNNING THE APPLICATION OR IT WILL NOT FUNCTION PROPERLY
-The URL_FILE must contain a list of newline-delimited URLs from npm or GitHub. The application will analyze each repository and output NDJSON with fields:
+### Uploading Packages
 
-URL
-NetScore
-NetScore_Latency
-RampUp
-RampUp_Latency
-Correctness
-Correctness_Latency
-BusFactor
-BusFactor_Latency
-ResponsiveMaintainer
-ResponsiveMaintainer_Latency
-License
-License_Latency
+To upload an npm or GitHub package, use the **/api/packages/upload** endpoint. This can be done via the frontend UI or via a direct API request.
 
-Each score is normalized between 0 and 1. Latency values are in seconds, rounded to three decimal places.
+Supported upload formats:
+- **npm packages**: Zip file containing the package.
+- **GitHub repositories**: A direct URL to the repository.
 
-Run Tests:
+### Interacting with Packages
 
-./run test
-This command runs the test suite, which contains at least 20 distinct test cases and aims for 80% line coverage. Output example:
+Once the packages are uploaded, you can interact with them using the following API endpoints:
+- **Get Package Information**: 
 
-X/Y test cases passed. Z% line coverage achieved.
-The program exits with code 0 on success and a non-zero value on failure.
+GET /api/packages/{id}{action} (for the purposes of this project it's rating or cost)
+these are accessed via buttons currently
 
-# Metrics
+other used api endpoints include:
 
-NetScore: Weighted sum of the metrics, based on Sarah’s priorities. Weights and justifications are included in the project report.
-Bus Factor: Evaluates the risk of key contributors leaving the project.
-Correctness: Measures the overall health and functionality of the repository.
-Ramp-Up Time: Estimates how long it takes for a developer to become productive with the repository.
-Responsiveness: Assesses the maintainers’ responsiveness to issues and pull requests.
-License: Determines whether the repository has an appropriate license.
-Each metric reports latency values for calculating the metric.
+GET /api/packages
 
-# Logging
+Retrieves a list of all available packages in the registry.
 
-Logging behavior is controlled by two environment variables:
+DELETE /api/packages/{id}
 
-$LOG_FILE: Path to the log file.
-$LOG_LEVEL: Verbosity level (0 for silent, 1 for informational, 2 for debug).
-If $LOG_LEVEL is not specified, it defaults to 0.
+Removes a package from the registry.
 
-# Error Handling
+### Admin-Only Actions
 
-In the event of an error, the program will print a useful error message to the console and exit with return code 1.
+Admins can perform actions like resetting the entire registry by using the following endpoint:
 
-# Contribution Guidelines
+DELETE /api/reset
 
-Clone the repository:
+This clears the user registry (aside from the one required admin user)
 
-git clone https://github.com/jmurrer/ece461_project.git
-cd ece461_project
+## Running Tests
 
-Create a new branch:
+To run the test suite:
 
+npm run test
+
+The test suite ensures the application is functioning correctly and covers a wide range of cases, especially related to package upload, retrieval, and analysis.
+
+## Contribution Guidelines
+
+To contribute to this project:
+
+1. Clone the repository:
+git clone https://github.com/jmurrer/ece461_project.git cd ece461_project
+
+
+2. Create a new branch:
 git checkout -b your-branch-name
 
-Commit and push your changes:
 
-git add . (or specify the files if you don't want to commit all of them)
-git commit -m "Description of changes"
-git push origin your-branch-name
-Open a pull request and describe the changes made.
-
-# Rebasing
-
-To rebase your branch onto main:
+3. Commit and push your changes:
+git add . git commit -m "Description of changes" git push origin your-branch-name
 
 
-git checkout <branch-name>
-git rebase main
-Resolve conflicts as needed. Use git rebase --continue to proceed, or git rebase --abort to stop.
+4. Open a pull request and describe the changes made.
 
-Code Review Process
+## Rebasing
 
-Before merging, all team members must review the changes. Pull requests are only merged into main after approval from all contributors.
+To rebase your branch onto `main`:
+
+git checkout <branch-name> git rebase main
