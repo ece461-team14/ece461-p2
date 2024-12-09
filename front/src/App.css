@@ -39,7 +39,6 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  opacity: .5;
 }
 
 h2 {
@@ -67,7 +66,7 @@ button {
   padding: 10px 15px;
   font-size: 1rem;
   cursor: pointer;
-  background-color: #61dafb;
+  background-color: #1f829d;
   border: none;
   border-radius: 4px;
   color: black;
@@ -107,7 +106,7 @@ input[type="file"] {
 .left-section button {
   margin-top: 10px;
   padding: 10px 15px;
-  background-color: #61dafb;
+  background-color: #1f829d;
   border: none;
   border-radius: 4px;
   color: black;
@@ -121,7 +120,7 @@ input[type="file"] {
 
 /* file Drop Area Styling */
 .file-drop-area {
-  border: 2px solid #61dafb;
+  border: 2px solid #1f829d;
   padding: 40px;
   margin-top: 20px;
   border-radius: 8px;
@@ -157,7 +156,9 @@ input[type="file"] {
 /* silly background section */
 
 body {
-  background-image: url('davisbackground.jpg');
+  background: 
+    url('./happybackground.jpg') no-repeat center center fixed, 
+    #61dafb;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

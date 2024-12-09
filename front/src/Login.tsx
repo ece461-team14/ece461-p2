@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import axios from "axios";
 
 interface LoginProps {
-  onLogin: (token: string) => void;
-  userRegistry: { username: string; password: string }[]; // Add this line
+  onLogin: (token: string, adminStatus: boolean) => void;
   onSignupClick: () => void;
+  userRegistry: { username: string; password: string; isAdmin: boolean }[];
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onSignupClick }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSignupClick, userRegistry }) => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -15,31 +15,31 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignupClick }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    console.log('Submitting login request...');
+  
     try {
       const response = await axios.put(
         "http://localhost:8080/authenticate",
         {
-          User: {
-            name: username,
-            isAdmin: isAdmin,
-          },
-          Secret: {
-            password: password,
-          },
+          User: { name: username, isAdmin: isAdmin },
+          Secret: { password: password },
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { "Content-Type": "application/json" } }
       );
-
-      const token = response.data; // Assuming it returns "bearer token"
-      localStorage.setItem("authToken", token); // Store token in local storage
-
-      onLogin(token); // Mark the user as logged in
+      console.log('Login response:', response.data); // Check the response
+  
+      const token = response.data;
+      const jwtToken = token.split(' ')[1]; // Split the token (format: "bearer <token>")
+      const base64Payload = jwtToken.split('.')[1];
+      const decodedPayload = JSON.parse(atob(base64Payload));
+  
+      const adminStatus = decodedPayload.isAdmin;
+  
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("isAdmin", adminStatus.toString());
+      onLogin(token, adminStatus); // Pass both token and admin status
     } catch (err) {
+      console.error('Login error:', err); // Log error if login fails
       setError("Invalid username or password.");
     }
   };

@@ -18,7 +18,7 @@ interface Package {
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
-  const [userRegistry] = useState<{ username: string; password: string }[]>([]);
+  const [userRegistry] = useState<{ username: string; password: string; isAdmin: boolean }[]>([]);
   const [files, setFiles] = useState<Package[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,8 @@ const App: React.FC = () => {
   const [debloat, setDebloat] = useState<boolean>(false);
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [packageRating, setPackageRating] = useState(null); // store fetched rating
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -82,12 +84,17 @@ const App: React.FC = () => {
     }
   }, [fetchFiles, isAuthenticated]);
 
-  const handleLogin = (token: string) => {
-    localStorage.setItem("authToken", token);
-    console.log("og token", token);
+  const handleLogin = (token: string, adminStatus: boolean) => {
     setIsAuthenticated(true);
-    setShowReauthButton(false);
+    setIsAdmin(adminStatus); // Update isAdmin based on login
   };
+  
+  // const handleLogin = (token: string) => {
+  //   localStorage.setItem("authToken", token);
+  //   console.log("og token", token);
+  //   setIsAuthenticated(true);
+  //   setShowReauthButton(false);
+  // };
 
   const handleSignupToggle = () => {
     setShowSignup((prev) => !prev);
@@ -152,6 +159,26 @@ const App: React.FC = () => {
       console.error("Error adding user:", error);
       throw error; // Re-throw to allow the Signup component to catch it
     }
+  };
+
+  const handleReset = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No token found.");
+
+      await axios.delete("http://localhost:8080/reset", {
+        headers: { "X-Authorization": token },
+      });
+
+      alert("Registry reset successfully.");
+    } catch (err) {
+      console.error("Error resetting registry:", err);
+      alert("Failed to reset registry.");
+    }
+  };
+
+  const toggleSignupView = () => {
+    setShowSignup(!showSignup);
   };
 
   const handleUrlSubmit = async () => {
@@ -320,11 +347,19 @@ const App: React.FC = () => {
   };
 
   const fetchPackageCost = async () => {
-    if (!selectedPackageId) return; // Exit if no package is selected
+    if (!selectedPackageId) {
+      setError("Please select a package first.");
+      return; // Exit if no package is selected
+    }
   
     try {
       const token = localStorage.getItem("authToken");
       const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      if (!cleanToken) {
+        setError("Authorization token is missing or invalid.");
+        return;
+      }
   
       const response = await axios.get(`${apiUrl}/package/${selectedPackageId}/cost?dependency=true`, {
         headers: {
@@ -332,31 +367,46 @@ const App: React.FC = () => {
         },
       });
   
-      if (response.data) {
+      if (response.status === 200) {
         setPackageCost(response.data[selectedPackageId]);
+      } else {
+        setError(`Failed to fetch package cost: ${response.statusText}`);
       }
     } catch (error) {
-      setError("Error fetching package cost");
+      console.error("Error fetching package cost:", error);
+      setError("Error fetching package cost.");
     }
   };
 
   const fetchPackageRating = async () => {
-    const token = localStorage.getItem("authToken");
-    const cleanToken = token?.replace(/^Bearer\s+/i, '');
     if (!selectedPackageId) {
-      alert('Please select a package first');
-      return;
+      setError("Please select a package first.");
+      return; // Exit if no package is selected
     }
+  
     try {
-      // Replace with full URL if necessary, or use relative path if running on the same server
+      const token = localStorage.getItem("authToken");
+      const cleanToken = token?.replace(/^Bearer\s+/i, '');
+  
+      if (!cleanToken) {
+        setError("Authorization token is missing or invalid.");
+        return;
+      }
+  
       const response = await axios.get(`${apiUrl}/package/${selectedPackageId}/rate`, {
         headers: {
           'X-Authorization': `Bearer ${cleanToken}`,
         },
       });
-      setPackageRating(response.data);
+  
+      if (response.status === 200) {
+        setPackageRating(response.data);
+      } else {
+        setError(`Failed to fetch package rating: ${response.statusText}`);
+      }
     } catch (error) {
-      console.error('Error fetching package rating:', error);
+      console.error("Error fetching package rating:", error);
+      setError("Error fetching package rating.");
     }
   };
 
@@ -406,9 +456,9 @@ const App: React.FC = () => {
           />
         ) : (
           <Login
-            onLogin={handleLogin} // Handle login and pass the token
+            onLogin={handleLogin}
+            onSignupClick={toggleSignupView}
             userRegistry={userRegistry}
-            onSignupClick={handleSignupToggle}
           />
         )
       ) : (
@@ -577,6 +627,16 @@ const App: React.FC = () => {
               )}
             </section>
           </div>
+
+          {isAdmin && (
+            <div className="admin-section">
+              <h2>Admin Actions</h2>
+              <button onClick={handleReset} className="reset-button">
+                Reset Registry
+              </button>
+            </div>
+          )}
+
           {showReauthButton && (
             <div className="reauth-section">
               <h3>Reauthenticate</h3>
