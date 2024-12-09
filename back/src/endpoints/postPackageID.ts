@@ -50,9 +50,9 @@ export const postPackageID = async (req, res) => {
     // console.log(req.body);
     // console.log(metadata);
     // console.log(data);
-    const ID = metadata.ID;
-    const Version = metadata.Version;
-    console.log(ID);
+    const ID = req.body.metadata.ID;
+    const Version = req.body.metadata.Version;
+    console.log(req.body);
     const { Content, URL, JSProgram, Debloat } = data;
 
     // Validate request body
