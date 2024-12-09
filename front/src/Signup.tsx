@@ -1,3 +1,12 @@
+/**
+ * Signup Component - JJAB
+ * 
+ * Allows users to create a new account by providing a username and password.
+ * Validates input (username and password length, password match) before submitting.
+ * Displays error or success messages based on the outcome of the signup process.
+ * 
+ */
+
 import React, { useState } from "react";
 
 interface SignupProps {
