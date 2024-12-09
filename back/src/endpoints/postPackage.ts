@@ -45,7 +45,7 @@ export const postPackage = async (req, res) => {
     }
     const username = (decoded as jwt.JwtPayload).name;
 
-    let { Name, Version, JSProgram, Content, URL, PermLevel } = req.body;
+    let { Name, Version, JSProgram, Content, URL, PermLevel, debloat } = req.body;
 
     // Validate the request body
     if (!Name || !Version || (!Content && !URL)) {

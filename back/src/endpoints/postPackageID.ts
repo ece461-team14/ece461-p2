@@ -42,19 +42,19 @@ export const postPackageID = async (req, res) => {
         );
     }
 
-    const username = (decoded as jwt.JwtPayload).name;
+    const username = decoded.name;
 
     // Extract the package metadata and data from the request body
     const { metadata, data } = req.body;
     const { ID, Version } = metadata;
-    const { Content, URL, JSProgram, Debloat, PermLevel } = data;
+    const { Content, URL, JSProgram, debloat, PermLevel } = data;
 
     // Validate request body
     if (!ID || (!Content && !URL)) {
       return res
         .status(400)
         .send(
-          "1There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -96,19 +96,17 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "2There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
     // Ensure the upload method matches
     const uploadMethod = Content ? "Upload" : "URL";
     if (existingPackage.UploadMethod !== uploadMethod) {
-      console.log("UploadMethod: ", existingPackage.UploadMethod);
-      console.log("uploadMethod: ", uploadMethod);
       return res
         .status(400)
         .send(
-          "3There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -138,7 +136,7 @@ export const postPackageID = async (req, res) => {
       return res
         .status(400)
         .send(
-          "4There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+          "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
         );
     }
 
@@ -147,7 +145,7 @@ export const postPackageID = async (req, res) => {
     const newMetadata = {
       Name,
       Version,
-      ID: ID,
+      ID,
       JSProgram,
       TimeUpdated: timeUpdated,
       UsernameUploaded: username,
@@ -162,7 +160,6 @@ export const postPackageID = async (req, res) => {
     }
 
     // Handle content or URL upload
-    console.log("Name-Version: ", `${Name}-${Version}`);
     const packageID = crypto
       .createHash("sha256")
       .update(`${Name}-${Version}`)
@@ -180,17 +177,12 @@ export const postPackageID = async (req, res) => {
           return res
             .status(400)
             .send(
-              "5There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
             );
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(
-            Content,
-            JSProgram,
-            metadata,
-            username
-          );
+          const programResponse = await executeJsOnZip(Content, JSProgram, metadata, username);
           if (programResponse === 1) {
             return res
               .status(406)
@@ -211,7 +203,7 @@ export const postPackageID = async (req, res) => {
         return res
           .status(400)
           .send(
-            "6There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
           );
       }
     } else if (URL) {
@@ -224,17 +216,12 @@ export const postPackageID = async (req, res) => {
           return res
             .status(400)
             .send(
-              "7There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+              "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
             );
         }
 
         if (JSProgram) {
-          const programResponse = await executeJsOnZip(
-            packageData.toString("base64"),
-            JSProgram,
-            metadata,
-            username
-          );
+          const programResponse = await executeJsOnZip(packageData.toString("base64"), JSProgram, metadata, username);
           if (programResponse === 1) {
             return res
               .status(406)
@@ -255,13 +242,12 @@ export const postPackageID = async (req, res) => {
         return res
           .status(400)
           .send(
-            "8There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
+            "There is missing field(s) in the PackageID or it is formed improperly, or is invalid."
           );
       }
     }
 
     // Update registry
-    newMetadata.ID = packageID;
     registry[packageName].push(newMetadata);
     fs.writeFileSync(
       "./registry.json",
