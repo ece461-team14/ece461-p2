@@ -108,18 +108,20 @@ The test suite ensures the application is functioning correctly and covers a wid
 To contribute to this project:
 
 1. Clone the repository:
-git clone https://github.com/jmurrer/ece461_project.git cd ece461_project
+git clone https://github.com/ece461-team14/ece461-p2
 
+2. Change directory to the repository:
+cd ece461-p2
 
-2. Create a new branch:
+3. Create a new branch:
 git checkout -b your-branch-name
 
 
-3. Commit and push your changes:
+4. Commit and push your changes:
 git add . git commit -m "Description of changes" git push origin your-branch-name
 
 
-4. Open a pull request and describe the changes made.
+5. Open a pull request and describe the changes made.
 
 ## Rebasing
 
